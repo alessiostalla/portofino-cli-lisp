@@ -1,8 +1,10 @@
+(in-package :asdf)
+
 (defsystem "portofino-cli"
   :version "0.1.0"
   :author "Alessio Stalla"
   :license "AGPL"
-  :depends-on ("cl-cli" "cl-json" "drakma")
+  :depends-on ("defmain" "cl-json" "drakma")
   :components ((:module "src"
                 :components
                 ((:file "packages") (:file "portofino")

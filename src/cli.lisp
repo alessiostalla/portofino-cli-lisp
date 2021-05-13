@@ -20,3 +20,22 @@
 				       ,(format nil "-Dpackage=~A" package))
 		    :output t
 		    :error-output t))
+
+(defmain:defmain (main) ((version "Print the version and exit")
+			 &subcommand)
+  (print version))
+
+(defmain:defcommand (main new) ((type "type of application: service or webapp" :default "service")
+				(package "package of the application")
+				(version "version of the application" :default "1.0.0-SNAPSHOT")
+				(portofino-version "version of Portofino" :default *latest-portofino-version* :short nil)
+				&rest args)
+  "Create a new Portofino project"
+  (let* ((name (car args))
+	 (package (or package name)))
+    (unless name (error "Project name is required"))
+    (create-application name package :type (find-symbol (string-upcase type) :keyword)
+			:version version :portofino-version portofino-version)))
+
+
+
