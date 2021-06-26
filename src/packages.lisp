@@ -1,1 +1,2 @@
-(defpackage :portofino-cli (:use :cl))
+(defpackage :portofino-cli
+  (:use :cl))

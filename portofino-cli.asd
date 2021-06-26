@@ -4,7 +4,7 @@
   :version "0.1.0"
   :author "Alessio Stalla"
   :license "AGPL"
-  :depends-on ("defmain" "cl-json" "drakma")
+  :depends-on ("cl-json" "defmain" "drakma")
   :components ((:module "src"
                 :components
                 ((:file "packages") (:file "portofino")
