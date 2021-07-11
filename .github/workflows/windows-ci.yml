@@ -10,11 +10,23 @@ jobs:
 
     steps:
       - uses: actions/checkout@v1
-      - uses: 40ants/setup-lisp@v1
-        with:
-          asdf-system: portofino-cli
+      - name: Install Roswell
+        env:
+          LISP: sbcl-bin
+          ROSWELL_INSTALL_DIR: /c/roswell
+        shell: bash
+        run: |
+          PATH="/c/roswell/bin:$PATH"
+          curl -L https://raw.githubusercontent.com/fukamachi/roswell/windows-source-registry-settings/scripts/install-for-ci.sh | sh
+      - name: Install Qlot
+        shell: bash
+        run: |
+          echo ::group::Install Qlot
+          ros install qlot
+          echo .qlot/bin >> $GITHUB_PATH
+          echo ::endgroup::
       - name: Build executable
         shell: bash
         run: |
           PATH="~/.roswell/bin:/c/roswell/bin:$PATH"
-          qlot exec ${{ github.action_path }}/build-executable.ros
+          ros run -- --eval "(progn (asdf:load-asd \"`pwd`/portofino-cli.asd\") (ql:quickload :portofino-cli/executable))"

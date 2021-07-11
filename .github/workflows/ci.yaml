@@ -19,4 +19,4 @@ jobs:
       - name: Build executable
         run: |
           PATH="~/.roswell/bin:$PATH"
-          qlot exec build-executable.ros
+          ros run -- --eval "(progn (asdf:load-asd \"`pwd`/portofino-cli.asd\") (ql:quickload :portofino-cli/executable))"
