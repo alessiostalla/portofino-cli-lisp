@@ -1,0 +1,27 @@
+name: CI (Windows)
+
+on:
+  push:
+
+jobs:
+  build-executable:
+    name: Build executale
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macOS-latest]
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install Roswell
+        env:
+          LISP: sbcl-bin
+          ROSWELL_INSTALL_DIR: /usr
+        shell: bash
+        run: |
+          curl -L https://raw.githubusercontent.com/fukamachi/roswell/windows-source-registry-settings/scripts/install-for-ci.sh | sh
+      - name: Build executable
+        shell: bash
+        run: |
+          PATH="~/.roswell/bin:$PATH"
+          sbcl --eval "(progn (asdf:load-asd \"`pwd`/portofino-cli.asd\") (ql:quickload :portofino-cli/executable))"
