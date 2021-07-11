@@ -22,4 +22,4 @@ jobs:
         shell: bash
         run: |
           PATH="~/.roswell/bin:/c/roswell/bin:$PATH"
-          sbcl --eval "(progn (asdf:load-asd \"`pwd`/portofino-cli.asd\") (ql:quickload :portofino-cli/executable))"
+          sbcl-bin --eval "(progn (asdf:load-asd \"`pwd`/portofino-cli.asd\") (ql:quickload :portofino-cli/executable))"

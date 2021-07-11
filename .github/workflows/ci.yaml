@@ -1,4 +1,4 @@
-name: CI (Windows)
+name: CI
 
 on:
   push:
@@ -24,4 +24,4 @@ jobs:
         shell: bash
         run: |
           PATH="~/.roswell/bin:$PATH"
-          sbcl --eval "(progn (asdf:load-asd \"`pwd`/portofino-cli.asd\") (ql:quickload :portofino-cli/executable))"
+          sbcl-bin --eval "(progn (asdf:load-asd \"`pwd`/portofino-cli.asd\") (ql:quickload :portofino-cli/executable))"
