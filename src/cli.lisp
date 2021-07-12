@@ -55,3 +55,79 @@
 		   (let ((*read-eval* nil)) (read in))))))
     (with-open-file (out file :direction :output :if-exists :supersede :if-does-not-exist :create)
       (write (acons :token token (remove-if (lambda (x) (eq (car x) :token)) conf)) :stream out))))
+
+(defmain:defcommand (main logout) ()
+  "Log out deleting the stored token"
+  (let* ((file (resolve-file (user-homedir-pathname) ".portofino-cli"))
+	 (conf (with-open-file (in file :direction :input :if-does-not-exist nil)
+		 (when in
+		   (let ((*read-eval* nil)) (read in))))))
+    (when conf
+      (with-open-file (out file :direction :output :if-exists :supersede)
+	(write (remove-if (lambda (x) (eq (car x) :token)) conf) :stream out)))))
+
+(defmain:defcommand (main action) ((host "host to connect to" :short nil :default host)
+				   (port "host to connect to :short nil" :short nil :default port)
+				   (path "web path to the Portofino API" :short nil :default path)
+				   (protocol "protocol (http or https)" :short nil :default protocol)
+				   (username "the username")
+				   (password "the password")
+				   &subcommand)
+  "Commands for working with resource-actions")
+
+(defun ensure-login-token (host port path protocol username password &key force-login)
+  (let* ((file (resolve-file (user-homedir-pathname) ".portofino-cli"))
+	 (conf (with-open-file (in file :direction :input :if-does-not-exist nil)
+		 (when in
+		   (let ((*read-eval* nil))
+		     (read in))))))
+    (or (and (not force-login) (cdr (assoc :token conf)))
+	(if (and username password)
+	    (let ((token (cdr (assoc :jwt (portofino:login username password :host host :port port :path path :protocol protocol)))))
+	      (with-open-file (out file :direction :output :if-exists :supersede :if-does-not-exist :create)
+		(write (acons :token token (remove-if (lambda (x) (eq (car x) :token)) conf)) :stream out))
+	      token)
+	    (error "Username and password needed for authentication")))))
+
+(defmacro with-valid-login-token ((token-var host port path protocol username password) &body body)
+  `(handler-case
+       (let ((,token-var (ensure-login-token ,host ,port ,path ,protocol ,username ,password)))
+	 ,@body)
+     (authentication-required ()
+       (let ((,token-var (ensure-login-token ,host ,port ,path ,protocol ,username ,password :force-login t)))
+	 ,@body))))
+
+(defmain:defcommand (action list-types) ((host "host to connect to" :short nil :default host)
+					 (port "host to connect to :short nil" :short nil :default port)
+					 (path "web path to the Portofino API" :short nil :default path)
+					 (protocol "protocol (http or https)" :short nil :default protocol)
+					 (username "the username")
+					 (password "the password"))
+  "List resource-action types"
+  (with-valid-login-token (token host port path protocol username password)
+    (dolist (type (portofino:action-types :host host :port port :path path :protocol protocol :token token))
+      (format t "~A (~A)~%~A~@[: ~A~]~%~%" (car type) (cdr (assoc "className" (cdr type) :test #'string=))
+	      (cdr (assoc "name" (cdr type) :test #'string=)) (cdr (assoc "description" (cdr type) :test #'string=))))))
+
+
+(defmain:defcommand (action create) ((host "host to connect to" :short nil :default host)
+				     (port "host to connect to :short nil" :short nil :default port)
+				     (path "web path to the Portofino API" :short nil :default path)
+				     (protocol "protocol (http or https)" :short nil :default protocol)
+				     (username "the username")
+				     (password "the password")
+				     &rest type-and-path)
+  "List resource-action types"
+  (destructuring-bind (type action-path) type-and-path
+    (with-valid-login-token (token host port path protocol username password)
+      (let* ((action-types (portofino:action-types :host host :port port :path path :protocol protocol :token token))
+	     (action-class (cdr (assoc "className"
+				       (cdr (or (find (string-downcase type)
+						      action-types
+						      :key (lambda (x) (string-downcase (car x)))
+						      :test #'string=)
+						(error "Unknown action type ~S, valid choices are:~{ ~S~}"
+						       type
+						       (mapcar (lambda (x) (string-downcase (car x))) action-types))))
+				       :test #'string=))))
+	(portofino:create-action action-class action-path :host host :port port :path path :protocol protocol :token token)))))

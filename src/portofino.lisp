@@ -51,3 +51,29 @@
   (merge-pathnames (make-pathname :name (car (last path)))
 		   (apply #'resolve-directory base (butlast path))))
 
+(define-condition authentication-required (serious-condition) ())
+
+(defun action-types (&key (host *default-portofino-host*) (port *default-portofino-port*) (path *default-portofino-path*) (protocol *default-protocol*) token)
+  (let ((drakma:*text-content-types* '(("application" . "json")))
+	(url (resource-url host port path "portofino-upstairs/actions/:types" :protocol protocol)))
+    (multiple-value-bind (text status)
+	(drakma:http-request url :additional-headers `(("Authorization" . ,(format nil "Bearer ~A" token))))
+      (if (= status 200)
+	  (let ((json:*json-identifier-name-to-lisp* #'identity))
+	    (json:decode-json-from-string text))
+	  (cond
+	    ((= status 401) (error 'authentication-required))
+	    (t (error "Request failed, status: ~S, URL: ~A" status url)))))))
+
+(defun create-action (type action-path &key (host *default-portofino-host*) (port *default-portofino-port*) (path *default-portofino-path*) (protocol *default-protocol*) token)
+  (let ((url (resource-url host port path (format nil "portofino-upstairs/actions/~A" action-path) :protocol protocol)))
+    (multiple-value-bind (text status)
+	(drakma:http-request url
+			     :method :post
+			     :content type
+			     :additional-headers `(("Authorization" . ,(format nil "Bearer ~A" token))))
+      (if (and (>= status 200) (< status 300))
+	  url
+	  (cond
+	    ((= status 401) (error 'authentication-required))
+	    (t (error "Request failed: ~S, status: ~S, URL: ~A" text status url)))))))
