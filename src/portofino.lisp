@@ -77,3 +77,15 @@
 	  (cond
 	    ((= status 401) (error 'authentication-required))
 	    (t (error "Request failed: ~S, status: ~S, URL: ~A" text status url)))))))
+
+(defun delete-action (action-path &key (host *default-portofino-host*) (port *default-portofino-port*) (path *default-portofino-path*) (protocol *default-protocol*) token)
+  (let ((url (resource-url host port path (format nil "portofino-upstairs/actions/~A" action-path) :protocol protocol)))
+    (multiple-value-bind (text status)
+	(drakma:http-request url
+			     :method :delete
+			     :additional-headers `(("Authorization" . ,(format nil "Bearer ~A" token))))
+      (if (and (>= status 200) (< status 300))
+	  url
+	  (cond
+	    ((= status 401) (error 'authentication-required))
+	    (t (error "Request failed: ~S, status: ~S, URL: ~A" text status url)))))))

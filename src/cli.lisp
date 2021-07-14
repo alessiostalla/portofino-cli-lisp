@@ -131,3 +131,15 @@
 						       (mapcar (lambda (x) (string-downcase (car x))) action-types))))
 				       :test #'string=))))
 	(portofino:create-action action-class action-path :host host :port port :path path :protocol protocol :token token)))))
+
+(defmain:defcommand (action delete) ((host "host to connect to" :short nil :default host)
+				     (port "host to connect to :short nil" :short nil :default port)
+				     (path "web path to the Portofino API" :short nil :default path)
+				     (protocol "protocol (http or https)" :short nil :default protocol)
+				     (username "the username")
+				     (password "the password")
+				     &rest args)
+  "List resource-action types"
+  (destructuring-bind (action-path) args
+    (with-valid-login-token (token host port path protocol username password)
+      (portofino:delete-action action-path :host host :port port :path path :protocol protocol :token token))))
