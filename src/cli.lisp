@@ -25,6 +25,8 @@
 			 (port "host to connect to" :short nil :default *default-portofino-port*)
 			 (path "web path to the Portofino API" :short nil :default *default-portofino-path*)
 			 (protocol "protocol (http or https)" :short nil :default *default-protocol*)
+			 (username "username to log in" :default "")
+			 (password "password to log in" :short nil :default "")
 			 &subcommand))
 
 (defmain:defcommand (main new) ((type "type of application: service or webapp" :default "service")
@@ -41,13 +43,20 @@
     (create-application name package :type (find-symbol (string-upcase type) :keyword)
 			:version version :portofino-version portofino-version)))
 
-(defmain:defcommand (main login) ((host "host to connect to" :short nil :default host)
-				  (port "host to connect to :short nil" :short nil :default port)
-				  (path "web path to the Portofino API" :short nil :default path)
-				  (protocol "protocol (http or https)" :short nil :default protocol)
-				  (username "the username")
-				  (password "the password"))
+(defmacro define-subcommand-with-login ((parent name) (&rest args) &body body)
+  `(defmain:defcommand (,parent ,name) ((host "host to connect to" :short nil :default host)
+				       (port "host to connect to :short nil" :short nil :default port)
+				       (path "web path to the Portofino API" :short nil :default path)
+				       (protocol "protocol (http or https)" :short nil :default protocol)
+				       (username "username to log in" :default username)
+				       (password "password to log in" :short nil :default password)
+				       ,@args)
+     ,@body))
+
+(define-subcommand-with-login (main login) ()
   "Login to a running Portofino instance"
+  (unless (and username password (> (length username) 0) (> (length password) 0))
+    (error "--username and --password are required."))
   (let* ((token (cdr (assoc :jwt (portofino:login username password :host host :port port :path path :protocol protocol))))
 	 (file (resolve-file (user-homedir-pathname) ".portofino-cli"))
 	 (conf (with-open-file (in file :direction :input :if-does-not-exist nil)
@@ -66,13 +75,7 @@
       (with-open-file (out file :direction :output :if-exists :supersede)
 	(write (remove-if (lambda (x) (eq (car x) :token)) conf) :stream out)))))
 
-(defmain:defcommand (main action) ((host "host to connect to" :short nil :default host)
-				   (port "host to connect to :short nil" :short nil :default port)
-				   (path "web path to the Portofino API" :short nil :default path)
-				   (protocol "protocol (http or https)" :short nil :default protocol)
-				   (username "the username")
-				   (password "the password")
-				   &subcommand)
+(define-subcommand-with-login (main action) (&subcommand)
   "Commands for working with resource-actions")
 
 (defun ensure-login-token (host port path protocol username password &key force-login)
@@ -82,44 +85,36 @@
 		   (let ((*read-eval* nil))
 		     (read in))))))
     (or (and (not force-login) (cdr (assoc :token conf)))
-	(if (and username password)
+	(if (and username password (> (length username) 0) (> (length password) 0))
 	    (let ((token (cdr (assoc :jwt (portofino:login username password :host host :port port :path path :protocol protocol)))))
 	      (with-open-file (out file :direction :output :if-exists :supersede :if-does-not-exist :create)
 		(write (acons :token token (remove-if (lambda (x) (eq (car x) :token)) conf)) :stream out))
 	      token)
 	    (error "Username and password needed for authentication")))))
 
-(defmacro with-valid-login-token ((token-var host port path protocol username password) &body body)
+(defmacro with-safe-http-request ((token-var host port path protocol username password) &body body)
   `(handler-case
        (let ((,token-var (ensure-login-token ,host ,port ,path ,protocol ,username ,password)))
 	 ,@body)
+     (not-found (error)
+       (format t "Not found: ~A~%" (http-error-url error))
+       (uiop:quit))
      (authentication-required ()
        (let ((,token-var (ensure-login-token ,host ,port ,path ,protocol ,username ,password :force-login t)))
 	 ,@body))))
 
-(defmain:defcommand (action list-types) ((host "host to connect to" :short nil :default host)
-					 (port "host to connect to :short nil" :short nil :default port)
-					 (path "web path to the Portofino API" :short nil :default path)
-					 (protocol "protocol (http or https)" :short nil :default protocol)
-					 (username "the username")
-					 (password "the password"))
+(define-subcommand-with-login (action list-types) ()
   "List resource-action types"
-  (with-valid-login-token (token host port path protocol username password)
+  (with-safe-http-request (token host port path protocol username password)
     (dolist (type (portofino:action-types :host host :port port :path path :protocol protocol :token token))
       (format t "~A (~A)~%~A~@[: ~A~]~%~%" (car type) (cdr (assoc "className" (cdr type) :test #'string=))
 	      (cdr (assoc "name" (cdr type) :test #'string=)) (cdr (assoc "description" (cdr type) :test #'string=))))))
 
 
-(defmain:defcommand (action create) ((host "host to connect to" :short nil :default host)
-				     (port "host to connect to :short nil" :short nil :default port)
-				     (path "web path to the Portofino API" :short nil :default path)
-				     (protocol "protocol (http or https)" :short nil :default protocol)
-				     (username "the username")
-				     (password "the password")
-				     &rest type-and-path)
-  "List resource-action types"
+(define-subcommand-with-login (action create) (&rest type-and-path)
+  "Create a new resource-action"
   (destructuring-bind (type action-path) type-and-path
-    (with-valid-login-token (token host port path protocol username password)
+    (with-safe-http-request (token host port path protocol username password)
       (let* ((action-types (portofino:action-types :host host :port port :path path :protocol protocol :token token))
 	     (action-class (cdr (assoc "className"
 				       (cdr (or (find (string-downcase type)
@@ -132,14 +127,24 @@
 				       :test #'string=))))
 	(portofino:create-action action-class action-path :host host :port port :path path :protocol protocol :token token)))))
 
-(defmain:defcommand (action delete) ((host "host to connect to" :short nil :default host)
-				     (port "host to connect to :short nil" :short nil :default port)
-				     (path "web path to the Portofino API" :short nil :default path)
-				     (protocol "protocol (http or https)" :short nil :default protocol)
-				     (username "the username")
-				     (password "the password")
-				     &rest args)
-  "List resource-action types"
-  (destructuring-bind (action-path) args
-    (with-valid-login-token (token host port path protocol username password)
+(define-subcommand-with-login (action delete) (&rest args)
+  "Delete an action"
+  (let ((action-path (or (car args) (error "Usage: action delete <options> <path>"))))
+    (with-safe-http-request (token host port path protocol username password)
       (portofino:delete-action action-path :host host :port port :path path :protocol protocol :token token))))
+
+(define-subcommand-with-login (main db) (&subcommand)
+  "Commands for working with databases")
+
+(define-subcommand-with-login (db sync) (&rest database-name)
+  "Synchronize a database connection"
+  (let ((db-name (or (car database-name) (error "Usage: db sync <options> <database-name>"))))
+    (with-safe-http-request (token host port path protocol username password)
+      (portofino:synchronize-database db-name :host host :port port :path path :protocol protocol :token token))))
+
+#+todo
+(define-subcommand-with-login (db create) ((database) &rest database-name)
+  "Create a new database connection"
+  (let ((db-name (or (car database-name) (error "Usage: db sync <options> <database-name>"))))
+    (with-safe-http-request (token host port path protocol username password)
+      (portofino:create-database db-name :host host :port port :path path :protocol protocol :token token))))
