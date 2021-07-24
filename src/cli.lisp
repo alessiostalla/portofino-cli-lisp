@@ -119,7 +119,7 @@
 	      (cdr (assoc "name" (cdr type) :test #'string=)) (cdr (assoc "description" (cdr type) :test #'string=))))))
 
 
-(define-subcommand-with-login (action create) (&rest type-and-path)
+(define-subcommand-with-login (action portofino-cli-actions:create) (&rest type-and-path)
   "Create a new resource-action"
   (destructuring-bind (type action-path) type-and-path
     (with-safe-http-request (token host port path protocol username password)
@@ -135,7 +135,7 @@
 				       :test #'string=))))
 	(portofino:create-action action-class action-path :host host :port port :path path :protocol protocol :token token)))))
 
-(define-subcommand-with-login (action delete) (&rest args)
+(define-subcommand-with-login (action portofino-cli-actions:delete) (&rest args)
   "Delete an action"
   (let ((action-path (or (car args) (error "Usage: action delete <options> <path>"))))
     (with-safe-http-request (token host port path protocol username password)
@@ -150,13 +150,14 @@
     (with-safe-http-request (token host port path protocol username password)
       (portofino:synchronize-database db-name :host host :port port :path path :protocol protocol :token token))))
 
-(define-subcommand-with-login (db create) ((driver "JDBC driver" :short nil)
-					   (url "JDBC connection URL" :short nil)
-					   (jdbc-user "JDBC username" :short nil)
-					   (jdbc-pass "JDBC password" :short nil)
-					   (jndi-resource "JNDI resource name (alternative to JDBC parameters)" :short nil)
-					   (dialect "Hibernate dialect. If not specified, it'll be computed from the database connection." :short nil)
-					   &rest database-name)
+(define-subcommand-with-login (db portofino-cli-dbs:create)
+    ((driver "JDBC driver" :short nil)
+     (url "JDBC connection URL" :short nil)
+     (jdbc-user "JDBC username" :short nil)
+     (jdbc-pass "JDBC password" :short nil)
+     (jndi-resource "JNDI resource name (alternative to JDBC parameters)" :short nil)
+     (dialect "Hibernate dialect. If not specified, it'll be computed from the database connection." :short nil)
+     &rest database-name)
   "Create a new database connection"
   (let ((db-name (or (car database-name) (error "Usage: db sync <options> <database-name>"))))
     (with-safe-http-request (token host port path protocol username password)

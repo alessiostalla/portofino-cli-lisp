@@ -13,3 +13,8 @@
   (:use :cl :portofino)
   (:shadow #:login #:delete))
 
+(defpackage :portofino-cli-actions
+  (:export #:create #:delete))
+
+(defpackage :portofino-cli-dbs
+  (:export #:create #:delete))
