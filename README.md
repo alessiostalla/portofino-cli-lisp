@@ -23,6 +23,7 @@ Here is a list of all supported commands:
 These commands are supported:
 
  * action - Commands for working with resource-actions
+ * db - Commands for working with databases
  * login - Login to a running Portofino instance
  * logout - Log out deleting the stored token
  * new - Create a new Portofino project
