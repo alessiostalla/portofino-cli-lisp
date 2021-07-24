@@ -92,3 +92,25 @@
 			  :protocol protocol)))
     (with-http-request (:post url () :additional-headers `(("Authorization" . ,(format nil "Bearer ~A" token))))
       t)))
+
+(defun create-database (name &key
+			       (host *default-portofino-host*) (port *default-portofino-port*) (path *default-portofino-path*)
+			       (protocol *default-protocol*) token
+			       driver url username password dialect jndi-resource)
+  (let ((db-url url)
+	(url (resource-url host port path "portofino-upstairs/database/connections"
+			  :protocol protocol)))
+    (with-http-request (:post url ()
+			      :content-type "application/json"
+			      :content (cl-json:encode-json-to-string
+					(remove-if #'null (list
+							   (cons 'database-name name)
+							   (cons 'driver driver)
+							   (cons 'url db-url)
+							   (cons 'username username)
+							   (cons 'password password)
+							   (cons 'hibernate-dialect dialect)
+							   (cons 'jndi-resource jndi-resource))
+						   :key #'cdr))
+			      :additional-headers `(("Authorization" . ,(format nil "Bearer ~A" token))))
+      t)))

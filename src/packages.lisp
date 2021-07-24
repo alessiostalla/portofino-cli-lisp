@@ -1,7 +1,7 @@
 (defpackage :portofino
   (:use :cl)
   (:export
-   #:action-types #:authentication-required #:create-action
+   #:action-types #:authentication-required #:create-action #:create-database
    #:*default-connection-timeout*
    #:*default-portofino-host* #:*default-portofino-port* #:*default-portofino-path* #:*default-protocol*
    #:delete-action #:http-error-url

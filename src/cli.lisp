@@ -43,14 +43,22 @@
     (create-application name package :type (find-symbol (string-upcase type) :keyword)
 			:version version :portofino-version portofino-version)))
 
+#+todo-arguments-after-subcommand
+(defmacro defcommand (name (&rest args) &body body)
+  (let ((parent-name (if (listp name) (cadr name) name)))
+    `(progn
+       (defmain:defcommand ,name ,args ,@body)
+       (defmain:defcommand (,parent-name exec-gensyn) ,args ,@body)
+       ,parent-name)))
+
 (defmacro define-subcommand-with-login ((parent name) (&rest args) &body body)
   `(defmain:defcommand (,parent ,name) ((host "host to connect to" :short nil :default host)
-				       (port "host to connect to :short nil" :short nil :default port)
-				       (path "web path to the Portofino API" :short nil :default path)
-				       (protocol "protocol (http or https)" :short nil :default protocol)
-				       (username "username to log in" :default username)
-				       (password "password to log in" :short nil :default password)
-				       ,@args)
+					(port "host to connect to :short nil" :short nil :default port)
+					(path "web path to the Portofino API" :short nil :default path)
+					(protocol "protocol (http or https)" :short nil :default protocol)
+					(username "username to log in" :default username)
+					(password "password to log in" :short nil :default password)
+					,@args)
      ,@body))
 
 (define-subcommand-with-login (main login) ()
@@ -142,9 +150,17 @@
     (with-safe-http-request (token host port path protocol username password)
       (portofino:synchronize-database db-name :host host :port port :path path :protocol protocol :token token))))
 
-#+todo
-(define-subcommand-with-login (db create) ((database) &rest database-name)
+(define-subcommand-with-login (db create) ((driver "JDBC driver" :short nil)
+					   (url "JDBC connection URL" :short nil)
+					   (jdbc-user "JDBC username" :short nil)
+					   (jdbc-pass "JDBC password" :short nil)
+					   (jndi-resource "JNDI resource name (alternative to JDBC parameters)" :short nil)
+					   (dialect "Hibernate dialect. If not specified, it'll be computed from the database connection." :short nil)
+					   &rest database-name)
   "Create a new database connection"
   (let ((db-name (or (car database-name) (error "Usage: db sync <options> <database-name>"))))
     (with-safe-http-request (token host port path protocol username password)
-      (portofino:create-database db-name :host host :port port :path path :protocol protocol :token token))))
+      (portofino:create-database db-name
+				 :host host :port port :path path :protocol protocol :token token
+				 :driver driver :url url :username jdbc-user :password jdbc-pass :dialect dialect
+				 :jndi-resource jndi-resource))))
