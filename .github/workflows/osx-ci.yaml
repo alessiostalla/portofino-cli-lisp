@@ -20,4 +20,4 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: portofino-osx
-          path: portofino-cli
+          path: bin
