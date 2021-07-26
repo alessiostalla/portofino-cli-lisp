@@ -1,4 +1,4 @@
-(asdf:defsystem "portofino-cli/osx-app"
+(asdf:defsystem "portofino-cli-osx-app"
   :defsystem-depends-on (:deploy)
   :build-operation "deploy-op"
   :build-pathname "portofino"

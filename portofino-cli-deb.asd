@@ -1,4 +1,4 @@
-(asdf:defsystem "portofino-cli/deb"
+(asdf:defsystem "portofino-cli-deb"
   :defsystem-depends-on (:linux-packaging)
   :class "linux-packaging:deb"
   :build-operation "linux-packaging:build-op"
