@@ -1,6 +1,6 @@
 (asdf:defsystem "portofino-cli-osx-app"
   :defsystem-depends-on (:deploy)
-  :build-operation "deploy-op"
+  :build-operation "osx-app-deploy-op"
   :build-pathname "portofino"
   :entry-point "portofino-cli:main"
   :version "0.1.0"
