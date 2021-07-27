@@ -15,9 +15,9 @@ jobs:
       - name: Build executable
         run: |
           PATH="~/.roswell/bin:$PATH"
-          ros run -- --eval "(progn (asdf:load-asd \"`pwd`/portofino-cli.asd\") (ql:quickload :deploy) (asdf:load-asd \"`pwd`/portofino-cli-osx-app.asd\") (asdf:make :portofino-cli-osx-app))"
+          ros run -- --eval "(progn (asdf:load-asd \"`pwd`/portofino-cli.asd\") (ql:quickload :portofino-cli/executable))"
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
           name: portofino-osx
-          path: bin
+          path: portofino
