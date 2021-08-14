@@ -12,6 +12,8 @@ Generally, commands work by connecting to a Portofino running server – by defa
 ```
 The above will connect to a Portofino instance running at `https://www.example.com:12345/my-app/api`.
 
+In the future, we'll also support automatically launching a Portofino server as soon as the first command is issued. However, that likely requires modifications or extensions to Portofino itself.
+
 ## Usage
 Invoking the cli without any arguments prints some help text that you can use to discover commands.
 ```
@@ -44,6 +46,25 @@ These commands are supported:
  ```
 
 An interactive REPL is planned but not yet available.
+
+## Installation
+
+We don't provide (yet) binary packages, though I'm working on it. So, you'll have to build portofino-cli yourself. Please follow the build instructions.
+
+## Building
+
+First, clone this repo if you haven't done already:
+```
+git clone https://github.com/alessiostalla/portofino-cli
+```
+Make sure you have Roswell installed by following [its installation guide](https://github.com/roswell/roswell/wiki/Installation).
+
+Run the following command (using a Bash-compatible shell which should also be available in recent versions of Windows with WSL):
+```
+ros run -- --eval "(progn (asdf:load-asd \"`pwd`/portofino-cli.asd\") (ql:quickload :portofino-cli/executable))"
+```
+
+An executable file named "portofino" should be created. On Windows, you may rename it to "portofino.exe".
  
 ## License
  
@@ -52,4 +73,4 @@ You can open an issue if you'd like to use portofino-cli as a component in a too
  
 ## Donations
 
-You can help me maintain this and other projects by donating to [my Patreon](https://www.patreon.com/alessiostalla).
+You can help me develop and maintain this and other projects by donating to [my Patreon](https://www.patreon.com/alessiostalla).
