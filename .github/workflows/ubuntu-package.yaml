@@ -14,9 +14,14 @@ jobs:
       - uses: 40ants/setup-lisp@v1
         with:
           asdf-system: portofino-cli
+      - name: Prepare system
+        run: |
+          apt-get update -qq;
+          apt-get install -y ruby ruby-dev rubygems dpkg-dev sbcl curl git-core zlib1g-dev;
+          gem install --no-document fpm &> /dev/null;
       - name: Build executable
         run: |
-          PATH="~/.roswell/bin:$PATH"
+          PATH=~/.gem/ruby/$(ls ~/.gem/ruby)/bin:~/.roswell/bin:$PATH
           ros run -- --eval "(progn (asdf:load-asd \"`pwd`/portofino-cli.asd\") (ql:quickload :linux-packaging) (asdf:load-asd \"`pwd`/portofino-cli-deb.asd\") (asdf:make :portofino-cli-deb))"
       - name: Upload artifact
         uses: actions/upload-artifact@v2
