@@ -17,10 +17,21 @@ jobs:
       - name: Prepare system
         run: |
           sudo apt-get update -qq;
-          sudo apt-get install -y ruby ruby-dev rubygems dpkg-dev sbcl curl git-core zlib1g-dev;
-          gem install --no-document fpm &> /dev/null;
+          sudo apt-get install -y rubygems sbcl;
+          gem install --no-document fpm;
+          git clone --depth=1 --branch=sbcl-2.0.10 https://github.com/sbcl/sbcl.git ~/sbcl &> /dev/null;
+          (
+              cd ~/sbcl
+              set +e
+              sh make.sh --fancy --with-sb-linkable-runtime --with-sb-dynamic-core &> sbcl-build.log
+              code=$?
+              set -e
+              test $code = 0 || (cat sbcl-build.log && exit 1)
+              sudo sh install.sh &> /dev/null
+          )
       - name: Build executable
         run: |
+          ros use sbcl/system;
           PATH=~/.gem/ruby/$(ls ~/.gem/ruby)/bin:~/.roswell/bin:$PATH
           ros run -- --eval "(progn (asdf:load-asd \"`pwd`/portofino-cli.asd\") (ql:quickload :linux-packaging) (asdf:load-asd \"`pwd`/portofino-cli-deb.asd\") (asdf:make :portofino-cli-deb))"
       - name: Upload artifact
