@@ -27,7 +27,8 @@
 			 (protocol "protocol (http or https)" :short nil :default *default-protocol*)
 			 (username "username to log in" :default "")
 			 (password "password to log in" :short nil :default "")
-			 &subcommand))
+			 &subcommand)
+  (cl+ssl:reload))
 
 (defmain:defcommand (main new) ((type "type of application: service or webapp" :default "service")
 				(package "package of the application")
