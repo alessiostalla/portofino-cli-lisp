@@ -28,6 +28,7 @@
 			 (username "username to log in" :default "")
 			 (password "password to log in" :short nil :default "")
 			 &subcommand)
+  (setf *features* (remove :cl+ssl-foreign-libs-already-loaded *features*))
   (cl+ssl:reload))
 
 (defmain:defcommand (main new) ((type "type of application: service or webapp" :default "service")
