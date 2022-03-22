@@ -16,8 +16,11 @@
   :author "Alessio Stalla"
   :license "AGPL"
   :depends-on ("portofino-cli")
-  :components ((:module "src" :components (#+sbcl (:file "binary-sbcl"))))
+  :components ((:module "src" :components ((:file "binary-sbcl"))))
   :description "Command-line interface to a Portofino application")
+
+#-sbcl
+(error "Only SBCL is supported for now")
 
 (defsystem "portofino-cli/tests"
   :author "Alessio Stalla"

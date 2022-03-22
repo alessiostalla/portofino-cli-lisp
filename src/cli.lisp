@@ -28,7 +28,6 @@
 			 (username "username to log in" :default "")
 			 (password "password to log in" :short nil :default "")
 			 &subcommand)
-  (print *features*)
   (cl+ssl:reload))
 
 (defmain:defcommand (main new) ((type "type of application: service or webapp" :default "service")
