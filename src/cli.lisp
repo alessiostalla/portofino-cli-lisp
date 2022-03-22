@@ -27,10 +27,7 @@
 			 (protocol "protocol (http or https)" :short nil :default *default-protocol*)
 			 (username "username to log in" :default "")
 			 (password "password to log in" :short nil :default "")
-			 &subcommand)
-  (pushnew :cl+ssl-foreign-libs-already-loaded *features*)
-  (print (cffi:list-foreign-libraries :loaded-only nil))
-  (cl+ssl:reload))
+			 &subcommand))
 
 (defmain:defcommand (main new) ((type "type of application: service or webapp" :default "service")
 				(package "package of the application")
