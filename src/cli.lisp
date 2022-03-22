@@ -2,24 +2,20 @@
 
 (defvar *maven-command* "mvn")
 
-(defun check-maven-installation ()
-  (uiop:run-program `(,*maven-command* "-version")))
+(defmacro with-conf ((name &optional (file (gensym))) &body body)
+  `(let* ((,file (resolve-file (user-homedir-pathname) ".portofino-cli"))
+	  (,name (with-open-file (in ,file :direction :input :if-does-not-exist nil)
+		   (when in
+		     (let ((*read-eval* nil)) (read in))))))
+     ,@body))
 
-(defun create-application (name package &key (type :service) (version "1.0.0-SNAPSHOT") (portofino-version *latest-portofino-version*))
-  (check-maven-installation)
-  (uiop:run-program `(,*maven-command* "archetype:generate"
-				       "-DinteractiveMode=false"
-				       "-DarchetypeGroupId=com.manydesigns"
-				       ,(format nil "-DarchetypeArtifactId=~A" (ecase type
-										 (:service "portofino-service-archetype")
-										 (:webapp  "portofino-war-archetype")))
-				       ,(format nil "-DarchetypeVersion=~A" portofino-version)
-				       ,(format nil "-DgroupId=~A" package)
-				       ,(format nil "-DartifactId=~A" name)
-				       ,(format nil "-Dversion=~A" version)
-				       ,(format nil "-Dpackage=~A" package))
-		    :output t
-		    :error-output t))
+(with-conf (conf)
+  (when (cdr (assoc :host conf))
+    (setf *default-portofino-host* (cdr (assoc :host conf))))
+  (when (cdr (assoc :port conf))
+    (setf *default-portofino-port* (cdr (assoc :port conf))))
+  (when (cdr (assoc :path conf))
+    (setf *default-portofino-path* (cdr (assoc :path conf)))))
 
 (defmain:defmain (main) ((host "host to connect to" :short nil :default *default-portofino-host*)
 			 (port "host to connect to" :short nil :default *default-portofino-port*)
@@ -66,23 +62,19 @@
   "Login to a running Portofino instance"
   (unless (and username password (> (length username) 0) (> (length password) 0))
     (error "--username and --password are required."))
-  (let* ((token (cdr (assoc :jwt (portofino:login username password :host host :port port :path path :protocol protocol))))
-	 (file (resolve-file (user-homedir-pathname) ".portofino-cli"))
-	 (conf (with-open-file (in file :direction :input :if-does-not-exist nil)
-		 (when in
-		   (let ((*read-eval* nil)) (read in))))))
-    (with-open-file (out file :direction :output :if-exists :supersede :if-does-not-exist :create)
-      (write (acons :token token (remove-if (lambda (x) (eq (car x) :token)) conf)) :stream out))))
+  (let ((token (cdr (assoc :jwt (portofino:login username password :host host :port port :path path :protocol protocol)))))
+    (with-conf (conf file)
+      (with-open-file (out file :direction :output :if-exists :supersede :if-does-not-exist :create)
+	(write (acons :token token (remove-if (lambda (x) (eq (car x) :token)) conf)) :stream out)))))
 
 (defmain:defcommand (main logout) ()
   "Log out deleting the stored token"
-  (let* ((file (resolve-file (user-homedir-pathname) ".portofino-cli"))
-	 (conf (with-open-file (in file :direction :input :if-does-not-exist nil)
-		 (when in
-		   (let ((*read-eval* nil)) (read in))))))
+  (with-conf (conf file)
     (when conf
       (with-open-file (out file :direction :output :if-exists :supersede)
-	(write (remove-if (lambda (x) (eq (car x) :token)) conf) :stream out)))))
+	(write (remove-if (lambda (x)
+			    (or (eq (car x) :token) (eq (car x) :path) (eq (car x) :host) (eq (car x) :port)))
+			  conf) :stream out)))))
 
 (define-subcommand-with-login (main action) (&subcommand)
   "Commands for working with resource-actions")

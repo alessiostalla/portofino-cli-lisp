@@ -52,22 +52,13 @@ jobs:
           sudo apt-get install -y rubygems sbcl;
           sudo gem install --no-document fpm;
           git clone --depth=1 --branch=sbcl-2.0.10 https://github.com/sbcl/sbcl.git ~/sbcl &> /dev/null;
-          (
-              cd ~/sbcl
-              set +e
-              sh make.sh --fancy --with-sb-linkable-runtime --with-sb-dynamic-core &> sbcl-build.log
-              code=$?
-              set -e
-              test $code = 0 || (cat sbcl-build.log && exit 1)
-              sudo sh install.sh
-          )
       - name: Build executable
         run: |
           ros use sbcl/system;
           PATH=~/.roswell/bin:$PATH
-          ros run -- --eval "(progn (asdf:load-asd \"`pwd`/portofino-cli.asd\") (ql:quickload :linux-packaging) (asdf:load-asd \"`pwd`/portofino-cli-deb.asd\") (asdf:make :portofino-cli-deb))"
+          ros run -- --eval "(progn (asdf:load-asd \"`pwd`/portofino-cli.asd\") (ql:quickload :portofino-cli/executable))"
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
-          name: portofino-cli.deb
-          path: portofino-cli.deb
+          name: portofino-linux
+          path: portofino
