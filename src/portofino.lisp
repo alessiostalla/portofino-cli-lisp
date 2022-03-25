@@ -12,7 +12,9 @@
 		    (find-if (lambda (x) (and (listp x) (eq (car x) :docs)))
 			     (find-if (lambda (x) (eq (car x) :response)) json)))))))
 
-(defparameter *latest-portofino-version* (or (ignore-errors (latest-portofino-version)) "5.2.1"))
+(defvar *maven-command* "mvn")
+
+(defparameter *latest-portofino-version* (or (ignore-errors (latest-portofino-version)) "5.3.1"))
 
 (defvar *default-connection-timeout* 10)
 (defvar *default-portofino-host* "localhost")

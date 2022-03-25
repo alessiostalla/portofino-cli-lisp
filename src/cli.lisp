@@ -1,7 +1,5 @@
 (in-package :portofino-cli)
 
-(defvar *maven-command* "mvn")
-
 (defmacro with-conf ((name &optional (file (gensym))) &body body)
   `(let* ((,file (resolve-file (user-homedir-pathname) ".portofino-cli"))
 	  (,name (with-open-file (in ,file :direction :input :if-does-not-exist nil)
@@ -37,7 +35,7 @@
     (unless name
       (print "Project name is required")
       (uiop:quit))
-    (create-application name package :type (find-symbol (string-upcase type) :keyword)
+    (portofino:create-application name package :type (find-symbol (string-upcase type) :keyword)
 			:version version :portofino-version portofino-version)))
 
 #+todo-arguments-after-subcommand

@@ -1,7 +1,7 @@
 (in-package :asdf)
 
 (defsystem "portofino-cli"
-  :version "0.1.0"
+  :version "0.2.0"
   :author "Alessio Stalla"
   :license "AGPL"
   :depends-on ("cl-json" "defmain" "drakma")
@@ -12,7 +12,7 @@
 
 #+sbcl
 (defsystem "portofino-cli/executable"
-  :version "0.1.0"
+  :version "0.2.0"
   :author "Alessio Stalla"
   :license "AGPL"
   :depends-on ("portofino-cli")
