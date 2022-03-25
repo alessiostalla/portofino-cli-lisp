@@ -66,7 +66,7 @@
 	(write (acons :token token
 		      (acons :host host
 			     (acons :port port
-				    (acons :path pat
+				    (acons :path path
 					   (remove-if (lambda (x)
 							(or (eq (car x) :token) (eq (car x) :path) (eq (car x) :host) (eq (car x) :port)))
 						      conf)))))
