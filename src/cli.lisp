@@ -63,7 +63,14 @@
   (let ((token (cdr (assoc :jwt (portofino:login username password :host host :port port :path path :protocol protocol)))))
     (with-conf (conf file)
       (with-open-file (out file :direction :output :if-exists :supersede :if-does-not-exist :create)
-	(write (acons :token token (remove-if (lambda (x) (eq (car x) :token)) conf)) :stream out)))))
+	(write (acons :token token
+		      (acons :host host
+			     (acons :port port
+				    (acons :path pat
+					   (remove-if (lambda (x)
+							(or (eq (car x) :token) (eq (car x) :path) (eq (car x) :host) (eq (car x) :port)))
+						      conf)))))
+	       :stream out)))))
 
 (defmain:defcommand (main logout) ()
   "Log out deleting the stored token"
