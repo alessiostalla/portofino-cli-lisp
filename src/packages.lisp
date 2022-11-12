@@ -4,7 +4,7 @@
    #:action-types #:authentication-required
    #:create-action #:create-application #:create-database
    #:*default-connection-timeout*
-   #:*default-portofino-host* #:*default-portofino-port* #:*default-portofino-path* #:*default-protocol*
+   #:*default-portofino-url*
    #:delete-action
    #:http-error-url
    #:*latest-portofino-version* #:login
@@ -14,7 +14,7 @@
 (defpackage :portofino-cli
   (:use :cl :portofino)
   (:shadow #:login #:delete)
-  (:export #:invoke-main #:main))
+  (:export #:main))
 
 (defpackage :portofino-cli-actions
   (:export #:create #:delete))

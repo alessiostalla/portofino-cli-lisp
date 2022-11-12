@@ -7,88 +7,159 @@
 		     (let ((*read-eval* nil)) (read in))))))
      ,@body))
 
-(defmethod error-code ((c condition))
-  1)
+(defmethod error-info ((c error))
+  (values (format nil "Generic error: ~A" c) 1))
 
-(defun invoke-main ()
-  (print "invoking main")
-  (handler-bind
-    ((error (e)
-       (format *error-output* "~A~%" e)
-       (uiop:quit (error-code e))))))
+(defmethod error-info ((c USOCKET:CONNECTION-REFUSED-ERROR))
+  (values "Could not connect to the Portofino application." 2))
 
-(defmain:defmain (main) ((host "host to connect to" :short nil :default *default-portofino-host*)
-			 (port "host to connect to" :short nil :default *default-portofino-port*)
-			 (path "web path to the Portofino API" :short nil :default *default-portofino-path*)
-			 (protocol "protocol (http or https)" :short nil :default *default-protocol*)
-			 (username "username to log in" :default "")
-			 (password "password to log in" :short nil :default "")
-			 &subcommand)
-  (cl+ssl:reload)
+(defun main ()
+  (let ((cli (portofino/command)))
+    (handler-case
+	(clingon:run cli)
+      (error (e)
+	(multiple-value-bind (message code) (error-info e)
+	  (format *error-output* "~A~%" message)
+	  (clingon:exit code))))))
+
+(defmacro defhandler (name args &body body)
+  (let ((command (gensym "COMMAND")))
+    `(defun ,name (,command)
+       (handler-case
+	   (let (,@(mapcar (lambda (arg)
+			     `(,arg (clingon:getopt ,command ,(intern (symbol-name arg) :keyword))))
+			   args))
+	     ,@body)
+	 (error (e)
+	   (multiple-value-bind (message code) (error-info e)
+	     (format *error-output* message)
+	     (clingon:exit code)))))))
+     
+
+(defun portofino/options ()
   (with-conf (conf)
-    (when (cdr (assoc :host conf))
-      (setf host (cdr (assoc :host conf))))
-    (when (cdr (assoc :port conf))
-      (setf port (cdr (assoc :port conf))))
-    (when (cdr (assoc :path conf))
-      (setf path (cdr (assoc :path conf))))))
+    (let ((*default-portofino-url* (or (cdr (assoc :url conf)) *default-portofino-url*)))
+      (list
+       (clingon:make-option
+	:string
+	:description "URL of the Portofino application"
+	:short-name #\U
+	:long-name "url"
+	:initial-value *default-portofino-url*
+	:env-vars '("PORTOFINO_URL")
+	:key :url)
+       (clingon:make-option
+	:string
+	:description "username to log in"
+	:short-name #\u
+	:long-name "username"
+	:key :username)
+       (clingon:make-option
+	:string
+	:description "password to log in"
+	:short-name #\p
+	:long-name "password"
+	:key :password)))))
 
-(defmain:defcommand (main new) ((type "type of application: service or webapp" :default "service")
-				(package "package of the application")
-				(version "version of the application" :default "1.0.0-SNAPSHOT")
-				(portofino-version "version of Portofino" :default *latest-portofino-version* :short nil)
-				&rest args)
+(defun portofino/pre-hook (cmd)
+  (cl+ssl:reload))
+
+(defun portofino/handler (command)
+  (when (clingon:command-arguments command)
+    (format *error-output* "Invalid arguments ~A~%~%" (clingon:command-arguments command)))
+  (format t "Usage: ~%~%")
+  (clingon:print-usage command t))
+
+(defun portofino/command ()
+  (clingon:make-command :name "portofino" :description "The Portofino CLI"
+			:authors '("Alessio Stalla <alessiostalla@gmail.com>")
+			:options (portofino/options)
+			:pre-hook #'portofino/pre-hook
+			:handler #'portofino/handler
+			:sub-commands (list (new-project/command) (login/command) (logout/command))))
+
+(defun new-project/options ()
+  (list
+   (clingon:make-option
+    :string
+    :description "type of application: service or webapp"
+    :long-name "type"
+    :initial-value "service"
+    :key :project-type)
+   (clingon:make-option
+    :string
+    :description "package of the application"
+    :long-name "package"
+    :key :project-package)
+   (clingon:make-option
+    :string
+    :description "version of the application"
+    :long-name "project-version"
+    :initial-value "1.0.0-SNAPSHOT"
+    :key :project-version)
+   (clingon:make-option
+    :string
+    :description "version of Portofino"
+    :short-name #\v
+    :long-name "portofino-version"
+    :initial-value *latest-portofino-version*
+    :env-vars '("PORTOFINO_VERSION")
+    :key :portofino-version)))
+
+(defun new-project/command ()
+  (clingon:make-command :name "new" :description "Create a new Portofino project"
+			:options (new-project/options)
+			:handler #'new-project/handler))
+
+(defun new-project/handler (cmd)
   "Create a new Portofino project"
-  (let* ((name (car args))
-	 (package (or package name)))
-    (unless name
-      (error "Project name is required"))
-    (portofino:create-application name package :type (find-symbol (string-upcase type) :keyword)
-			:version version :portofino-version portofino-version)))
+  (let ((type (clingon:getopt cmd :project-type))
+	(package (clingon:getopt cmd :project-package))
+	(version (clingon:getopt cmd :project-version))
+	(portofino-version (clingon:getopt cmd :portofino-version))
+	(args (clingon:command-arguments cmd)))
+    (let* ((name (car args))
+	   (package (or package name)))
+      (unless name
+	(error "Project name is required"))
+      (portofino:create-application name package :type (or (find-symbol (string-upcase type) :keyword)
+							   (error "Invalid project type ~A" type))
+				    :version version :portofino-version portofino-version))))
 
-#+todo-arguments-after-subcommand
-(defmacro defcommand (name (&rest args) &body body)
-  (let ((parent-name (if (listp name) (cadr name) name)))
-    `(progn
-       (defmain:defcommand ,name ,args ,@body)
-       (defmain:defcommand (,parent-name exec-gensyn) ,args ,@body)
-       ,parent-name)))
+(defun login/command ()
+  (clingon:make-command :name "login" :description "Login to a running Portofino instance"
+			:handler #'login/handler
+			:options (portofino/options)))
 
-(defmacro define-subcommand-with-login ((parent name) (&rest args) &body body)
-  `(defmain:defcommand (,parent ,name) ((host "host to connect to" :short nil :default host)
-					(port "host to connect to :short nil" :short nil :default port)
-					(path "web path to the Portofino API" :short nil :default path)
-					(protocol "protocol (http or https)" :short nil :default protocol)
-					(username "username to log in" :default username)
-					(password "password to log in" :short nil :default password)
-					,@args)
-     ,@body))
-
-(define-subcommand-with-login (main login) ()
+(defhandler login/handler (username password url)
   "Login to a running Portofino instance"
   (unless (and username password (> (length username) 0) (> (length password) 0))
-    (error "--username and --password are required."))
-  (let ((token (cdr (assoc :jwt (portofino:login username password :host host :port port :path path :protocol protocol)))))
+    (error "Username and password are required."))
+  (let ((token (cdr (assoc :jwt (portofino:login username password :portofino-url url)))))
     (with-conf (conf file)
       (with-open-file (out file :direction :output :if-exists :supersede :if-does-not-exist :create)
 	(write (acons :token token
-		      (acons :host host
-			     (acons :port port
-				    (acons :path path
-					   (remove-if (lambda (x)
-							(or (eq (car x) :token) (eq (car x) :path) (eq (car x) :host) (eq (car x) :port)))
-						      conf)))))
+		      (acons :url url
+			     (remove-if (lambda (x)
+					  (or (eq (car x) :token) (eq (car x) url)))
+					conf)))
 	       :stream out)))))
 
-(defmain:defcommand (main logout) ()
+(defun logout/command ()
+  (clingon:make-command :name "logout" :description "Log out of the application, i.e. delete the stored authentication token"
+			:handler #'logout/handler))
+
+(defhandler logout/handler ()
   "Log out deleting the stored token"
   (with-conf (conf file)
     (when conf
       (with-open-file (out file :direction :output :if-exists :supersede)
 	(write (remove-if (lambda (x)
-			    (or (eq (car x) :token) (eq (car x) :path) (eq (car x) :host) (eq (car x) :port)))
-			  conf) :stream out)))))
+			    (or (eq (car x) :token) (eq (car x) :url)))
+			  conf)
+	       :stream out)))))
 
+#|
 (define-subcommand-with-login (main action) (&subcommand)
   "Commands for working with resource-actions")
 
@@ -171,3 +242,4 @@
 				 :host host :port port :path path :protocol protocol :token token
 				 :driver driver :url url :username jdbc-user :password jdbc-pass :dialect dialect
 				 :jndi-resource jndi-resource))))
+|#

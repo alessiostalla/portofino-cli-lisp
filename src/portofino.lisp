@@ -17,10 +17,7 @@
 (defparameter *latest-portofino-version* (or (ignore-errors (latest-portofino-version)) "5.3.3"))
 
 (defvar *default-connection-timeout* 10)
-(defvar *default-portofino-host* "localhost")
-(defvar *default-portofino-port* "8080")
-(defvar *default-portofino-path* "/api")
-(defvar *default-protocol* "http")
+(defvar *default-portofino-url* "http://localhost:8080/api")
 
 (defun check-maven-installation ()
   (uiop:run-program `(,*maven-command* "-version")))
@@ -30,9 +27,11 @@
   (uiop:run-program `(,*maven-command* "archetype:generate"
 				       "-DinteractiveMode=false"
 				       "-DarchetypeGroupId=com.manydesigns"
-				       ,(format nil "-DarchetypeArtifactId=~A" (ecase type
-										 (:service "portofino-service-archetype")
-										 (:webapp  "portofino-war-archetype")))
+				       ,(format nil "-DarchetypeArtifactId=~A"
+						(case type
+						  (:service "portofino-service-archetype")
+						  (:webapp  "portofino-war-archetype")
+						  (t (error "Not a known application type: ~A" type))))
 				       ,(format nil "-DarchetypeVersion=~A" portofino-version)
 				       ,(format nil "-DgroupId=~A" package)
 				       ,(format nil "-DartifactId=~A" name)
@@ -41,21 +40,16 @@
 		    :output t
 		    :error-output t))
 
-(defun sanitize-path (path)
-  (if (> (length path) 0)
-      (if (char= (aref path 0) #\/)
-	  path
-	  (format nil "/~A" path))
-      path))
+(defun sanitize-base-url (url)
+  (loop :while (and (> (length url) 0) (char= (aref url (1- (length url))) #\/))
+     :do (setf url (subseq url 0 (1- (length url)))))
+  url)
 
-(defun base-url (host port path &key (protocol *default-protocol*))
-  (format nil "~A://~A:~A~A" protocol host port (sanitize-path path)))
-
-(defun resource-url (host port base-path path &key (protocol *default-protocol*))
-  (format nil "~A/~A" (base-url host port base-path :protocol protocol) path))
+(defun resource-url (base-url path)
+  (format nil "~A/~A" (sanitize-base-url base-url) path))
 
 (defmacro with-http-request ((method url (&optional (text (gensym "TEXT")) (status (gensym "STATUS")))
-				  &rest args) &body body)
+				     &rest args) &body body)
   `(multiple-value-bind (,text ,status)
 	(drakma:http-request ,url :method ,method ,@args :connection-timeout *default-connection-timeout*)
       (if (and (>= ,status 200) (< ,status 300))
@@ -65,11 +59,11 @@
 	    ((= ,status 404) (error 'not-found :url url))
 	    (t (error "Request failed: ~S, status: ~S, URL: ~A" ,text ,status ,url))))))
 
-(defun login (username password &key (host *default-portofino-host*) (port *default-portofino-port*) (path *default-portofino-path*) (protocol *default-protocol*))
+(defun login (username password &key (portofino-url *default-portofino-url*))
   (unless (and username password)
     (error "Username and password are required."))
   (let ((drakma:*text-content-types* '(("application" . "json")))
-	(url (resource-url host port path ":auth" :protocol protocol)))
+	(url (resource-url portofino-url ":auth")))
     (with-http-request (:post url (text)
 			      :parameters `(("username" . ,username)
 					    ("password" . ,password)))
@@ -88,39 +82,35 @@
 (define-condition authentication-required (http-error) ())
 (define-condition not-found (http-error) ())
 
-(defun action-types (&key (host *default-portofino-host*) (port *default-portofino-port*) (path *default-portofino-path*) (protocol *default-protocol*) token)
+(defun action-types (&key (portofino-url *default-portofino-url*) token)
   (let ((drakma:*text-content-types* '(("application" . "json")))
-	(url (resource-url host port path "portofino-upstairs/actions/:types" :protocol protocol)))
+	(url (resource-url portofino-url "portofino-upstairs/actions/:types")))
     (with-http-request (:get url (text) :additional-headers `(("Authorization" . ,(format nil "Bearer ~A" token))))
       (let ((json:*json-identifier-name-to-lisp* #'identity))
 	(json:decode-json-from-string text)))))
 
-(defun create-action (type action-path &key (host *default-portofino-host*) (port *default-portofino-port*) (path *default-portofino-path*) (protocol *default-protocol*) token)
-  (let ((url (resource-url host port path (format nil "portofino-upstairs/actions/~A" action-path) :protocol protocol)))
-    (with-http-request (:post url (text)
+(defun create-action (type action-path &key (portofino-url *default-portofino-url*) token)
+  (let ((url (resource-url url (format nil "portofino-upstairs/actions/~A" action-path))))
+    (with-http-request (:post portofino-url (text)
 			      :content type
 			      :additional-headers `(("Authorization" . ,(format nil "Bearer ~A" token))))
       text)))
 
-(defun delete-action (action-path &key (host *default-portofino-host*) (port *default-portofino-port*) (path *default-portofino-path*) (protocol *default-protocol*) token)
-  (let ((url (resource-url host port path (format nil "portofino-upstairs/actions/~A" action-path) :protocol protocol)))
+(defun delete-action (action-path &key (portofino-url *default-portofino-url*) token)
+  (let ((url (resource-url portofino-url (format nil "portofino-upstairs/actions/~A" action-path))))
     (with-http-request (:delete url () :additional-headers `(("Authorization" . ,(format nil "Bearer ~A" token))))
       t)))
 
-(defun synchronize-database (name &key (host *default-portofino-host*) (port *default-portofino-port*) (path *default-portofino-path*) (protocol *default-protocol*) token)
-  (let ((url (resource-url host port path
-			   (format nil "portofino-upstairs/database/connections/~A/:synchronize" name)
-			  :protocol protocol)))
+(defun synchronize-database (name &key (portofino-url *default-portofino-url*) token)
+  (let ((url (resource-url portofino-url (format nil "portofino-upstairs/database/connections/~A/:synchronize" name))))
     (with-http-request (:post url () :additional-headers `(("Authorization" . ,(format nil "Bearer ~A" token))))
       t)))
 
 (defun create-database (name &key
-			       (host *default-portofino-host*) (port *default-portofino-port*) (path *default-portofino-path*)
-			       (protocol *default-protocol*) token
+			       (portofino-url *default-portofino-url*) token
 			       driver url username password dialect jndi-resource)
   (let ((db-url url)
-	(url (resource-url host port path "portofino-upstairs/database/connections"
-			  :protocol protocol)))
+	(url (resource-url portofino-url "portofino-upstairs/database/connections")))
     (with-http-request (:post url ()
 			      :content-type "application/json"
 			      :content (cl-json:encode-json-to-string
