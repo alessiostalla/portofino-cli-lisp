@@ -14,7 +14,7 @@
 
 (defvar *maven-command* "mvn")
 
-(defparameter *latest-portofino-version* (or (ignore-errors (latest-portofino-version)) "5.3.1"))
+(defparameter *latest-portofino-version* (or (ignore-errors (latest-portofino-version)) "5.3.3"))
 
 (defvar *default-connection-timeout* 10)
 (defvar *default-portofino-host* "localhost")

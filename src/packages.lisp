@@ -14,7 +14,7 @@
 (defpackage :portofino-cli
   (:use :cl :portofino)
   (:shadow #:login #:delete)
-  (:export #:main))
+  (:export #:invoke-main #:main))
 
 (defpackage :portofino-cli-actions
   (:export #:create #:delete))

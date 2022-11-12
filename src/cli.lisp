@@ -7,6 +7,16 @@
 		     (let ((*read-eval* nil)) (read in))))))
      ,@body))
 
+(defmethod error-code ((c condition))
+  1)
+
+(defun invoke-main ()
+  (print "invoking main")
+  (handler-bind
+    ((error (e)
+       (format *error-output* "~A~%" e)
+       (uiop:quit (error-code e))))))
+
 (defmain:defmain (main) ((host "host to connect to" :short nil :default *default-portofino-host*)
 			 (port "host to connect to" :short nil :default *default-portofino-port*)
 			 (path "web path to the Portofino API" :short nil :default *default-portofino-path*)
@@ -32,8 +42,7 @@
   (let* ((name (car args))
 	 (package (or package name)))
     (unless name
-      (print "Project name is required")
-      (uiop:quit))
+      (error "Project name is required"))
     (portofino:create-application name package :type (find-symbol (string-upcase type) :keyword)
 			:version version :portofino-version portofino-version)))
 
@@ -103,7 +112,7 @@
 	 ,@body)
      (not-found (error)
        (format t "Not found: ~A~%" (http-error-url error))
-       (uiop:quit))
+       (uiop:quit 2))
      (authentication-required ()
        (let ((,token-var (ensure-login-token ,host ,port ,path ,protocol ,username ,password :force-login t)))
 	 ,@body))))
@@ -156,7 +165,7 @@
      (dialect "Hibernate dialect. If not specified, it'll be computed from the database connection." :short nil)
      &rest database-name)
   "Create a new database connection"
-  (let ((db-name (or (car database-name) (error "Usage: db sync <options> <database-name>"))))
+  (let ((db-name (or (car database-name) (error "Usage: db create <options> <database-name>"))))
     (with-safe-http-request (token host port path protocol username password)
       (portofino:create-database db-name
 				 :host host :port port :path path :protocol protocol :token token
