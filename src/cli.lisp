@@ -13,6 +13,9 @@
 (defmethod error-info ((c USOCKET:CONNECTION-REFUSED-ERROR))
   (values "Could not connect to the Portofino application." 2))
 
+(defmethod error-info ((error not-found))
+  (values (format nil "Not found: ~A~%" (http-error-url error)) 3))
+
 (defun main ()
   (let ((cli (portofino/command)))
     (handler-case
@@ -32,10 +35,9 @@
 	     ,@body)
 	 (error (e)
 	   (multiple-value-bind (message code) (error-info e)
-	     (format *error-output* message)
+	     (format *error-output* "~A~%" message)
 	     (clingon:exit code)))))))
      
-
 (defun portofino/options ()
   (with-conf (conf)
     (let ((*default-portofino-url* (or (cdr (assoc :url conf)) *default-portofino-url*)))
@@ -64,7 +66,7 @@
 (defun portofino/pre-hook (cmd)
   (cl+ssl:reload))
 
-(defun portofino/handler (command)
+(defun directory-command/handler (command)
   (when (clingon:command-arguments command)
     (format *error-output* "Invalid arguments ~A~%~%" (clingon:command-arguments command)))
   (format t "Usage: ~%~%")
@@ -75,8 +77,10 @@
 			:authors '("Alessio Stalla <alessiostalla@gmail.com>")
 			:options (portofino/options)
 			:pre-hook #'portofino/pre-hook
-			:handler #'portofino/handler
-			:sub-commands (list (new-project/command) (login/command) (logout/command))))
+			:handler #'directory-command/handler
+			:sub-commands (list (new-project/command)
+					    (action/command)
+					    (login/command) (logout/command))))
 
 (defun new-project/options ()
   (list
@@ -133,9 +137,12 @@
 
 (defhandler login/handler (username password url)
   "Login to a running Portofino instance"
+  (login-and-store-token username password url))
+
+(defun login-and-store-token (username password url)
   (unless (and username password (> (length username) 0) (> (length password) 0))
     (error "Username and password are required."))
-  (let ((token (cdr (assoc :jwt (portofino:login username password :portofino-url url)))))
+  (let ((token (cdr (assoc :jwt (portofino:login username password :url url)))))
     (with-conf (conf file)
       (with-open-file (out file :direction :output :if-exists :supersede :if-does-not-exist :create)
 	(write (acons :token token
@@ -159,43 +166,42 @@
 			  conf)
 	       :stream out)))))
 
-#|
-(define-subcommand-with-login (main action) (&subcommand)
-  "Commands for working with resource-actions")
+(defun action/command ()
+  (clingon:make-command :name "action" :description "Commands for working with resource-actions"
+			:handler #'directory-command/handler
+			:options (portofino/options)
+			:sub-commands (list (list-action-types/command))))
 
-(defun ensure-login-token (host port path protocol username password &key force-login)
+(defun ensure-login-token (username password &key (url *default-portofino-url*) force-login)
   (let* ((file (resolve-file (user-homedir-pathname) ".portofino-cli"))
 	 (conf (with-open-file (in file :direction :input :if-does-not-exist nil)
 		 (when in
 		   (let ((*read-eval* nil))
 		     (read in))))))
     (or (and (not force-login) (cdr (assoc :token conf)))
-	(if (and username password (> (length username) 0) (> (length password) 0))
-	    (let ((token (cdr (assoc :jwt (portofino:login username password :host host :port port :path path :protocol protocol)))))
-	      (with-open-file (out file :direction :output :if-exists :supersede :if-does-not-exist :create)
-		(write (acons :token token (remove-if (lambda (x) (eq (car x) :token)) conf)) :stream out))
-	      token)
-	    (error "Username and password needed for authentication")))))
+	(login-and-store-token username password url))))
 
-(defmacro with-safe-http-request ((token-var host port path protocol username password) &body body)
+(defmacro with-safe-http-request ((token-var url username password) &body body)
   `(handler-case
-       (let ((,token-var (ensure-login-token ,host ,port ,path ,protocol ,username ,password)))
+       (let ((,token-var (ensure-login-token ,username ,password :url ,url)))
 	 ,@body)
-     (not-found (error)
-       (format t "Not found: ~A~%" (http-error-url error))
-       (uiop:quit 2))
      (authentication-required ()
-       (let ((,token-var (ensure-login-token ,host ,port ,path ,protocol ,username ,password :force-login t)))
+       (let ((,token-var (ensure-login-token ,username ,password :url ,url :force-login t)))
 	 ,@body))))
 
-(define-subcommand-with-login (action list-types) ()
+(defun list-action-types/command ()
+  (clingon:make-command :name "list-types" :description "List resource-action types"
+			:handler #'list-action-types/handler
+			:options (portofino/options)))
+
+(defhandler list-action-types/handler (username password url)
   "List resource-action types"
-  (with-safe-http-request (token host port path protocol username password)
-    (dolist (type (portofino:action-types :host host :port port :path path :protocol protocol :token token))
+  (with-safe-http-request (token url username password)
+    (dolist (type (portofino:action-types :url url :token token))
       (format t "~A (~A)~%~A~@[: ~A~]~%~%" (car type) (cdr (assoc "className" (cdr type) :test #'string=))
 	      (cdr (assoc "name" (cdr type) :test #'string=)) (cdr (assoc "description" (cdr type) :test #'string=))))))
 
-
+#|
 (define-subcommand-with-login (action portofino-cli-actions:create) (&rest type-and-path)
   "Create a new resource-action"
   (destructuring-bind (type action-path) type-and-path
@@ -240,6 +246,6 @@
     (with-safe-http-request (token host port path protocol username password)
       (portofino:create-database db-name
 				 :host host :port port :path path :protocol protocol :token token
-				 :driver driver :url url :username jdbc-user :password jdbc-pass :dialect dialect
+				 :driver driver :database-url url :username jdbc-user :password jdbc-pass :dialect dialect
 				 :jndi-resource jndi-resource))))
 |#

@@ -59,11 +59,11 @@
 	    ((= ,status 404) (error 'not-found :url url))
 	    (t (error "Request failed: ~S, status: ~S, URL: ~A" ,text ,status ,url))))))
 
-(defun login (username password &key (portofino-url *default-portofino-url*))
+(defun login (username password &key (url *default-portofino-url*))
   (unless (and username password)
     (error "Username and password are required."))
   (let ((drakma:*text-content-types* '(("application" . "json")))
-	(url (resource-url portofino-url ":auth")))
+	(url (resource-url url ":auth")))
     (with-http-request (:post url (text)
 			      :parameters `(("username" . ,username)
 					    ("password" . ,password)))
@@ -82,42 +82,41 @@
 (define-condition authentication-required (http-error) ())
 (define-condition not-found (http-error) ())
 
-(defun action-types (&key (portofino-url *default-portofino-url*) token)
+(defun action-types (&key (url *default-portofino-url*) token)
   (let ((drakma:*text-content-types* '(("application" . "json")))
-	(url (resource-url portofino-url "portofino-upstairs/actions/:types")))
+	(url (resource-url url "portofino-upstairs/actions/:types")))
     (with-http-request (:get url (text) :additional-headers `(("Authorization" . ,(format nil "Bearer ~A" token))))
       (let ((json:*json-identifier-name-to-lisp* #'identity))
 	(json:decode-json-from-string text)))))
 
-(defun create-action (type action-path &key (portofino-url *default-portofino-url*) token)
+(defun create-action (type action-path &key (url *default-portofino-url*) token)
   (let ((url (resource-url url (format nil "portofino-upstairs/actions/~A" action-path))))
-    (with-http-request (:post portofino-url (text)
+    (with-http-request (:post url (text)
 			      :content type
 			      :additional-headers `(("Authorization" . ,(format nil "Bearer ~A" token))))
       text)))
 
-(defun delete-action (action-path &key (portofino-url *default-portofino-url*) token)
-  (let ((url (resource-url portofino-url (format nil "portofino-upstairs/actions/~A" action-path))))
+(defun delete-action (action-path &key (url *default-portofino-url*) token)
+  (let ((url (resource-url url (format nil "portofino-upstairs/actions/~A" action-path))))
     (with-http-request (:delete url () :additional-headers `(("Authorization" . ,(format nil "Bearer ~A" token))))
       t)))
 
-(defun synchronize-database (name &key (portofino-url *default-portofino-url*) token)
-  (let ((url (resource-url portofino-url (format nil "portofino-upstairs/database/connections/~A/:synchronize" name))))
+(defun synchronize-database (name &key (url *default-portofino-url*) token)
+  (let ((url (resource-url url (format nil "portofino-upstairs/database/connections/~A/:synchronize" name))))
     (with-http-request (:post url () :additional-headers `(("Authorization" . ,(format nil "Bearer ~A" token))))
       t)))
 
 (defun create-database (name &key
-			       (portofino-url *default-portofino-url*) token
-			       driver url username password dialect jndi-resource)
-  (let ((db-url url)
-	(url (resource-url portofino-url "portofino-upstairs/database/connections")))
+			       (url *default-portofino-url*) token
+			       driver database-url username password dialect jndi-resource)
+  (let ((url (resource-url url "portofino-upstairs/database/connections")))
     (with-http-request (:post url ()
 			      :content-type "application/json"
 			      :content (cl-json:encode-json-to-string
 					(remove-if #'null (list
 							   (cons 'database-name name)
 							   (cons 'driver driver)
-							   (cons 'url db-url)
+							   (cons 'url database-url)
 							   (cons 'username username)
 							   (cons 'password password)
 							   (cons 'hibernate-dialect dialect)
