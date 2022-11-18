@@ -1,48 +1,64 @@
 # portofino-cli
 Command-line utilities for ManyDesigns Portofino.
 
-This is a work in progress. Only few commands are supported at the moment and error handling is not very user-friendly.
+This is a work in progress. Only few commands are supported at the moment and error handling is not very user-friendly (but it's improving).
 
-Generally, commands work by connecting to a Portofino running server – by default, `http://localhost:8080/`. You can change the address with a few cli switches:
-```
---host www.example.com
---port 12345
---path my-app/api
---protocol https
-```
-The above will connect to a Portofino instance running at `https://www.example.com:12345/my-app/api`.
+Generally, commands work by connecting to a Portofino running server – by default, `http://localhost:8080/`. You can change the address with `--url http://...`.
 
-In the future, we'll also support automatically launching a Portofino server as soon as the first command is issued. However, that likely requires modifications or extensions to Portofino itself.
+In the future, we may also support automatically launching a Portofino server against a given directory as soon as the first command is issued. However, that likely requires modifications or extensions to Portofino itself.
 
 ## Usage
 Invoking the cli without any arguments prints some help text that you can use to discover commands.
 ```
 $ ./portofino
-Please, specify a command.
+Usage: 
 
-Here is a list of all supported commands:
+NAME:
+  portofino - The Portofino CLI
 
-These commands are supported:
+USAGE:
+  portofino [global-options] [<command>] [command-options] [arguments ...]
 
- * action - Commands for working with resource-actions
- * db - Commands for working with databases
- * login - Login to a running Portofino instance
- * logout - Log out deleting the stored token
- * new - Create a new Portofino project
+OPTIONS:
+      --help              display usage information and exit
+      --version           display version and exit
+  -U, --url <VALUE>       URL of the Portofino application [default: http://localhost:8080/]
+                          [env: $PORTOFINO_URL]
+  -p, --password <VALUE>  password to log in
+  -u, --username <VALUE>  username to log in
+
+COMMANDS:
+  new     Create a new Portofino project
+  action  Commands for working with resource-actions
+  login   Login to a running Portofino instance
+  logout  Log out of the application, i.e. delete the stored authentication
+          token
+
+AUTHORS:
+  Alessio Stalla <alessiostalla@gmail.com>
  ```
  
 Similarly you can discover sub-commands by typing them:
 ```
 $ ./portofino action
-Please, specify a command.
+Usage: 
 
-Here is a list of all supported commands:
+NAME:
+  portofino action - Commands for working with resource-actions
 
-These commands are supported:
+USAGE:
+  portofino [global-options] action [<command>] [command-options] [arguments ...]
 
- * create - Create a new resource-action
- * delete - Delete an action
- * list-types - List resource-action types
+OPTIONS:
+      --help              display usage information and exit
+      --version           display version and exit
+  -U, --url <VALUE>       URL of the Portofino application [default: http://localhost:8080/]
+                          [env: $PORTOFINO_URL]
+  -p, --password <VALUE>  password to log in
+  -u, --username <VALUE>  username to log in
+
+COMMANDS:
+  list-types  List resource-action types
  ```
 
 An interactive REPL is planned but not yet available.

@@ -17,7 +17,7 @@
 (defparameter *latest-portofino-version* (or (ignore-errors (latest-portofino-version)) "5.3.3"))
 
 (defvar *default-connection-timeout* 10)
-(defvar *default-portofino-url* "http://localhost:8080/api")
+(defvar *default-portofino-url* "http://localhost:8080")
 
 (defun check-maven-installation ()
   (uiop:run-program `(,*maven-command* "-version")))
