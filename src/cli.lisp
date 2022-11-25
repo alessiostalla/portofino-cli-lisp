@@ -25,43 +25,51 @@
 	  (format *error-output* "~A~%" message)
 	  (clingon:exit code))))))
 
+(defun getopt (command opt-key)
+  (dolist (cmd (clingon:command-lineage command))
+    (multiple-value-bind (value exists-p) (clingon:getopt cmd opt-key)
+      (when exists-p
+        (return-from getopt (values value exists-p)))))
+  (values nil nil))
+
 (defmacro defhandler (name args &body body)
-  (let ((command (gensym "COMMAND")))
+  (let ((command (gensym "COMMAND")) bindings rest)
+    (dolist (arg args)
+      (if (eq arg '&rest)
+	  (setf rest t)
+	  (push (if rest
+		    `(,arg (clingon:command-arguments ,command))
+		    `(,arg (getopt ,command ,(intern (symbol-name arg) :keyword))))
+		bindings)))
     `(defun ,name (,command)
        (handler-case
-	   (let (,@(mapcar (lambda (arg)
-			     `(,arg (clingon:getopt ,command ,(intern (symbol-name arg) :keyword))))
-			   args))
-	     ,@body)
+	   (let ,(reverse bindings) ,@body)
 	 (error (e)
 	   (multiple-value-bind (message code) (error-info e)
 	     (format *error-output* "~A~%" message)
 	     (clingon:exit code)))))))
      
 (defun portofino/options ()
-  (with-conf (conf)
-    (let ((*default-portofino-url* (or (cdr (assoc :url conf)) *default-portofino-url*)))
-      (list
-       (clingon:make-option
-	:string
-	:description "URL of the Portofino application"
-	:short-name #\U
-	:long-name "url"
-	:initial-value *default-portofino-url*
-	:env-vars '("PORTOFINO_URL")
-	:key :url)
-       (clingon:make-option
-	:string
-	:description "username to log in"
-	:short-name #\u
-	:long-name "username"
-	:key :username)
-       (clingon:make-option
-	:string
-	:description "password to log in"
-	:short-name #\p
-	:long-name "password"
-	:key :password)))))
+  (list
+   (clingon:make-option
+    :string
+    :description "URL of the Portofino application"
+    :short-name #\U
+    :long-name "url"
+    :env-vars '("PORTOFINO_URL")
+    :key :url)
+   (clingon:make-option
+    :string
+    :description "username to log in"
+    :short-name #\u
+    :long-name "username"
+    :key :username)
+   (clingon:make-option
+    :string
+    :description "password to log in"
+    :short-name #\p
+    :long-name "password"
+    :key :password)))
 
 (defun portofino/pre-hook (cmd)
   (cl+ssl:reload))
@@ -170,7 +178,7 @@
   (clingon:make-command :name "action" :description "Commands for working with resource-actions"
 			:handler #'directory-command/handler
 			:options (portofino/options)
-			:sub-commands (list (list-action-types/command))))
+			:sub-commands (list (list-action-types/command) (create-action/command))))
 
 (defun ensure-login-token (username password &key (url *default-portofino-url*) force-login)
   (let* ((file (resolve-file (user-homedir-pathname) ".portofino-cli"))
@@ -182,12 +190,15 @@
 	(login-and-store-token username password url))))
 
 (defmacro with-safe-http-request ((token-var url username password) &body body)
-  `(handler-case
-       (let ((,token-var (ensure-login-token ,username ,password :url ,url)))
-	 ,@body)
-     (authentication-required ()
-       (let ((,token-var (ensure-login-token ,username ,password :url ,url :force-login t)))
-	 ,@body))))
+  (let ((conf (gensym "CONF")))
+    `(with-conf (,conf)
+       (let ((,url (or ,url (cdr (assoc :url ,conf)) *default-portofino-url*)))
+	 (handler-case
+	     (let ((,token-var (ensure-login-token ,username ,password :url ,url)))
+	       ,@body)
+	   (authentication-required ()
+	     (let ((,token-var (ensure-login-token ,username ,password :url ,url :force-login t)))
+	       ,@body)))))))
 
 (defun list-action-types/command ()
   (clingon:make-command :name "list-types" :description "List resource-action types"
@@ -201,13 +212,19 @@
       (format t "~A (~A)~%~A~@[: ~A~]~%~%" (car type) (cdr (assoc "className" (cdr type) :test #'string=))
 	      (cdr (assoc "name" (cdr type) :test #'string=)) (cdr (assoc "description" (cdr type) :test #'string=))))))
 
-#|
-(define-subcommand-with-login (action portofino-cli-actions:create) (&rest type-and-path)
+(defun create-action/command ()
+  (clingon:make-command :name "create" :description "Create a new resource-action"
+			:handler #'create-action/handler
+			:options (portofino/options)))
+
+(defhandler create-action/handler (username password url &rest type-and-path)
   "Create a new resource-action"
+  (when (< (length type-and-path) 2)
+    (error "Type and path required"))
   (destructuring-bind (type action-path) type-and-path
-    (with-safe-http-request (token host port path protocol username password)
-      (let* ((action-types (portofino:action-types :host host :port port :path path :protocol protocol :token token))
-	     (action-class (cdr (assoc "className"
+    (with-safe-http-request (token url username password)
+       (let* ((action-types (portofino:action-types :url url :token token))
+	      (action-class (cdr (assoc "className"
 				       (cdr (or (find (string-downcase type)
 						      action-types
 						      :key (lambda (x) (string-downcase (car x)))
@@ -216,7 +233,9 @@
 						       type
 						       (mapcar (lambda (x) (string-downcase (car x))) action-types))))
 				       :test #'string=))))
-	(portofino:create-action action-class action-path :host host :port port :path path :protocol protocol :token token)))))
+	 (portofino:create-action action-class action-path :url url :token token)))))
+
+#|
 
 (define-subcommand-with-login (action portofino-cli-actions:delete) (&rest args)
   "Delete an action"
