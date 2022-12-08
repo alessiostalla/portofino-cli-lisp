@@ -14,7 +14,7 @@
 
 (defvar *maven-command* "mvn")
 
-(defparameter *latest-portofino-version* (or (ignore-errors (latest-portofino-version)) "5.3.3"))
+(defparameter *latest-portofino-version* (or (ignore-errors (latest-portofino-version)) "5.3.4"))
 
 (defvar *default-connection-timeout* 10)
 (defvar *default-portofino-url* "http://localhost:8080")
@@ -82,10 +82,13 @@
 (define-condition authentication-required (http-error) ())
 (define-condition not-found (http-error) ())
 
+(defun authorization-header (token)
+  `("Authorization" . ,(format nil "Bearer ~A" token)))
+
 (defun action-types (&key (url *default-portofino-url*) token)
   (let ((drakma:*text-content-types* '(("application" . "json")))
 	(url (resource-url url "portofino-upstairs/actions/:types")))
-    (with-http-request (:get url (text) :additional-headers `(("Authorization" . ,(format nil "Bearer ~A" token))))
+    (with-http-request (:get url (text) :additional-headers (list (authorization-header token)))
       (let ((json:*json-identifier-name-to-lisp* #'identity))
 	(json:decode-json-from-string text)))))
 
@@ -93,17 +96,17 @@
   (let ((url (resource-url url (format nil "portofino-upstairs/actions/~A" action-path))))
     (with-http-request (:post url (text)
 			      :content type
-			      :additional-headers `(("Authorization" . ,(format nil "Bearer ~A" token))))
+			      :additional-headers (list (authorization-header token)))
       text)))
 
 (defun delete-action (action-path &key (url *default-portofino-url*) token)
   (let ((url (resource-url url (format nil "portofino-upstairs/actions/~A" action-path))))
-    (with-http-request (:delete url () :additional-headers `(("Authorization" . ,(format nil "Bearer ~A" token))))
+    (with-http-request (:delete url () :additional-headers (list (authorization-header token)))
       t)))
 
 (defun synchronize-database (name &key (url *default-portofino-url*) token)
   (let ((url (resource-url url (format nil "portofino-upstairs/database/connections/~A/:synchronize" name))))
-    (with-http-request (:post url () :additional-headers `(("Authorization" . ,(format nil "Bearer ~A" token))))
+    (with-http-request (:post url () :additional-headers (list (authorization-header token)))
       t)))
 
 (defun create-database (name &key
@@ -122,5 +125,5 @@
 							   (cons 'hibernate-dialect dialect)
 							   (cons 'jndi-resource jndi-resource))
 						   :key #'cdr))
-			      :additional-headers `(("Authorization" . ,(format nil "Bearer ~A" token))))
+			      :additional-headers (list (authorization-header token)))
       t)))

@@ -88,7 +88,9 @@
 			:handler #'directory-command/handler
 			:sub-commands (list (new-project/command)
 					    (action/command)
-					    (login/command) (logout/command))))
+					    (db/command)
+					    (login/command)
+					    (logout/command))))
 
 (defun new-project/options ()
   (list
@@ -178,7 +180,10 @@
   (clingon:make-command :name "action" :description "Commands for working with resource-actions"
 			:handler #'directory-command/handler
 			:options (portofino/options)
-			:sub-commands (list (list-action-types/command) (create-action/command))))
+			:sub-commands (list
+				       (list-action-types/command)
+				       (create-action/command)
+				       (delete-action/command))))
 
 (defun ensure-login-token (username password &key (url *default-portofino-url*) force-login)
   (let* ((file (resolve-file (user-homedir-pathname) ".portofino-cli"))
@@ -235,36 +240,80 @@
 				       :test #'string=))))
 	 (portofino:create-action action-class action-path :url url :token token)))))
 
-#|
+(defun delete-action/command ()
+  (clingon:make-command :name "delete" :description "Delete a resource-action"
+			:handler #'delete-action/handler
+			:options (portofino/options)))
 
-(define-subcommand-with-login (action portofino-cli-actions:delete) (&rest args)
-  "Delete an action"
+(defhandler delete-action/handler (username password url &rest args)
+  "Delete a resource-action"
   (let ((action-path (or (car args) (error "Usage: action delete <options> <path>"))))
-    (with-safe-http-request (token host port path protocol username password)
-      (portofino:delete-action action-path :host host :port port :path path :protocol protocol :token token))))
+    (with-safe-http-request (token url username password)
+      (portofino:delete-action action-path :url url :token token))))
 
-(define-subcommand-with-login (main db) (&subcommand)
-  "Commands for working with databases")
+(defun db/command ()
+  (clingon:make-command :name "db" :description "Commands for working with databases"
+			:handler #'directory-command/handler
+			:options (portofino/options)
+			:sub-commands (list
+				       (db-sync/command)
+				       (db-add/command))))
 
-(define-subcommand-with-login (db sync) (&rest database-name)
+(defun db-sync/command ()
+  (clingon:make-command :name "sync" :description "Synchronize a database connection"
+			:handler #'db-sync/handler
+			:options (portofino/options)))
+
+(defhandler db-sync/handler (username password url &rest args)
   "Synchronize a database connection"
-  (let ((db-name (or (car database-name) (error "Usage: db sync <options> <database-name>"))))
-    (with-safe-http-request (token host port path protocol username password)
-      (portofino:synchronize-database db-name :host host :port port :path path :protocol protocol :token token))))
+  (let ((db-name (or (car args) (error "Usage: db sync <options> <database-name>"))))
+    (with-safe-http-request (token url username password)
+      (portofino:synchronize-database db-name :url url :token token))))
 
-(define-subcommand-with-login (db portofino-cli-dbs:create)
-    ((driver "JDBC driver" :short nil)
-     (url "JDBC connection URL" :short nil)
-     (jdbc-user "JDBC username" :short nil)
-     (jdbc-pass "JDBC password" :short nil)
-     (jndi-resource "JNDI resource name (alternative to JDBC parameters)" :short nil)
-     (dialect "Hibernate dialect. If not specified, it'll be computed from the database connection." :short nil)
-     &rest database-name)
-  "Create a new database connection"
-  (let ((db-name (or (car database-name) (error "Usage: db create <options> <database-name>"))))
-    (with-safe-http-request (token host port path protocol username password)
-      (portofino:create-database db-name
-				 :host host :port port :path path :protocol protocol :token token
-				 :driver driver :database-url url :username jdbc-user :password jdbc-pass :dialect dialect
-				 :jndi-resource jndi-resource))))
-|#
+(defun db-add/options ()
+  (append (portofino/options)
+	  (list
+	   (clingon:make-option
+	    :string
+	    :description "JDBC URL of the database connection"
+	    :long-name "jdbc-url"
+	    :key :jdbc-url)
+	   (clingon:make-option
+	    :string
+	    :description "Database username to log in"
+	    :long-name "jdbc-user"
+	    :key :jdbc-user)
+	   (clingon:make-option
+	    :string
+	    :description "Database password to log in"
+	    :long-name "jdbc-password"
+	    :key :jdbc-password)
+	   (clingon:make-option
+	    :string
+	    :description "JDBC driver"
+	    :long-name "jdbc-driver"
+	    :key :jdbc-driver)
+	   (clingon:make-option
+	    :string
+	    :description "JNDI resource name (alternative to JDBC parameters)"
+	    :long-name "jndi-resource"
+	    :key :jndi-resource)
+	   (clingon:make-option
+	    :string
+	    :description "Hibernate dialect. If not specified, it'll be computed from the database connection."
+	    :long-name "dialect"
+	    :key :dialect))))
+
+(defun db-add/command ()
+  (clingon:make-command :name "add" :description "Configure a new database connection"
+			:handler #'db-add/handler
+			:options (db-add/options)))
+
+(defhandler db-add/handler
+    (username password url jdbc-url jdbc-user jdbc-password jdbc-driver jndi-resource dialect &rest args)
+  "Configure a new database connection"
+  (let ((db-name (or (car args) (error "Usage: db add <options> <database-name>"))))
+    (with-safe-http-request (token url username password)
+      (portofino:create-database db-name :url url :token token
+				 :driver jdbc-driver :database-url jdbc-url :username jdbc-user :password jdbc-password
+				 :dialect dialect :jndi-resource jndi-resource))))
