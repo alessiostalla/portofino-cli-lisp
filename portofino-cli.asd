@@ -1,10 +1,10 @@
 (in-package :asdf)
 
 (defsystem "portofino-cli"
-  :version "0.3.0"
+  :version "1.0.0"
   :author "Alessio Stalla"
   :license "AGPL"
-  :depends-on ("cl-json" "clingon" "drakma")
+  :depends-on ("cl-json" "clingon" "drakma" "split-sequence")
   :components ((:module "src"
                 :components ((:file "packages") (:file "portofino") (:file "cli"))))
   :description "Command-line interface to a Portofino application"

@@ -8,7 +8,7 @@
      ,@body))
 
 (defmethod error-info ((c serious-condition))
-  (values (format nil "Generic error: ~A" c) 1))
+  (values (format nil "~A" c) 1))
 
 (defmethod error-info ((c USOCKET:CONNECTION-REFUSED-ERROR))
   (values "Could not connect to the Portofino application." 2))
@@ -29,7 +29,14 @@
       (serious-condition (e)
 	(multiple-value-bind (message code) (error-info e)
 	  (format *error-output* "~A~%" message)
-	  (clingon:exit code))))))
+	  (clingon:exit code)))
+      (log-message-received (m)
+	(format (case (log-message-severity m)
+		  ((or :error :unknown) *error-output*)
+		  (t t))
+		"[~A] ~A~%"
+		(string-upcase (symbol-name (log-message-severity m)))
+		(log-message m))))))
 
 (defun getopt (command opt-key)
   (dolist (cmd (clingon:command-lineage command))
@@ -263,8 +270,11 @@
 			:handler #'directory-command/handler
 			:options (portofino/options)
 			:sub-commands (list
+				       (db-add/command)
+				       (db-schema/command)
+				       (db-remove/command)
 				       (db-sync/command)
-				       (db-add/command))))
+				       (db-update/command))))
 
 (defun db-sync/command ()
   (clingon:make-command :name "sync" :description "Synchronize a database connection"
@@ -277,7 +287,7 @@
     (with-safe-http-request (token url username password)
       (portofino:synchronize-database db-name :url url :token token))))
 
-(defun db-add/options ()
+(defun db-conf/options ()
   (append (portofino/options)
 	  (list
 	   (clingon:make-option
@@ -314,7 +324,7 @@
 (defun db-add/command ()
   (clingon:make-command :name "add" :description "Configure a new database connection"
 			:handler #'db-add/handler
-			:options (db-add/options)))
+			:options (db-conf/options)))
 
 (defhandler db-add/handler
     (username password url jdbc-url jdbc-user jdbc-password jdbc-driver jndi-resource dialect &rest args)
@@ -322,5 +332,51 @@
   (let ((db-name (or (car args) (error "Usage: db add <options> <database-name>"))))
     (with-safe-http-request (token url username password)
       (portofino:create-database db-name :url url :token token
-				 :driver jdbc-driver :database-url jdbc-url :username jdbc-user :password jdbc-password
+				 :driver jdbc-driver :jdbc-url jdbc-url :username jdbc-user :password jdbc-password
 				 :dialect dialect :jndi-resource jndi-resource))))
+
+(defun db-remove/command ()
+  (clingon:make-command :name "remove" :description "Remove a database connection"
+			:handler #'db-remove/handler
+			:options (portofino/options)))
+
+(defhandler db-remove/handler (username password url &rest args)
+  "Remove a database connection"
+  (let ((db-name (or (car args) (error "Usage: db remove <options> <database-name>"))))
+    (with-safe-http-request (token url username password)
+      (portofino:remove-database db-name :url url :token token))))
+
+(defun db-update/command ()
+  (clingon:make-command :name "update" :description "Configure an existing database connection"
+			:handler #'db-update/handler
+			:options (db-conf/options)))
+
+(defhandler db-update/handler
+    (username password url jdbc-url jdbc-user jdbc-password jdbc-driver jndi-resource dialect &rest args)
+  "Configure an existing database connection"
+  (let ((db-name (or (car args) (error "Usage: db update <options> <database-name>"))))
+    (with-safe-http-request (token url username password)
+      (portofino:update-database db-name :url url :token token
+				 :driver jdbc-driver :jdbc-url jdbc-url :username jdbc-user :password jdbc-password
+				 :dialect dialect :jndi-resource jndi-resource))))
+
+(defun db-schema/command ()
+  (clingon:make-command :name "schema" :description "Commands for working with schemas"
+			:handler #'directory-command/handler
+			:options (portofino/options)
+			:sub-commands (list
+				       (db-schema-add/command))))
+
+(defun db-schema-add/command ()
+  (clingon:make-command :name "add" :description "Map a new database schema"
+			:handler #'db-schema-add/handler
+			:options (portofino/options)))
+
+(defhandler db-schema-add/handler
+    (username password url &rest args)
+  "Map a new database schema"
+  (let ((db-name (or (car args) (error "Usage: db add <options> <database-name> <schema-name> [physical-name]")))
+	(schema-name (or (cadr args) (error "Usage: db add <options> <database-name> <schema-name> [physical-name]")))
+	(schema-physical-name (caddr args)))
+    (with-safe-http-request (token url username password)
+      (portofino:add-database-schema db-name schema-name schema-physical-name :url url :token token))))

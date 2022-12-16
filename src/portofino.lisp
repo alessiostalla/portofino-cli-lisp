@@ -48,17 +48,44 @@
 (defun resource-url (base-url path)
   (format nil "~A/~A" (sanitize-base-url base-url) path))
 
-(defmacro with-http-request ((method url (&optional (text (gensym "TEXT")) (status (gensym "STATUS")))
-				     &rest args) &body body)
-  `(multiple-value-bind (,text ,status)
-	(drakma:http-request ,url :method ,method ,@args :connection-timeout *default-connection-timeout*)
-      (if (and (>= ,status 200) (< ,status 300))
-	  (progn ,@body)
-	  (cond
-	    ((= ,status 401) (error 'authentication-required :url url))
-	    ((= ,status 403) (error 'not-authorized :url url))
-	    ((= ,status 404) (error 'not-found :url url))
-	    (t (error "Request failed: ~S, status: ~S, URL: ~A" ,text ,status ,url))))))
+(defun maybe-decode (content)
+  (typecase content
+    (string content)
+    (vector (flexi-streams:octets-to-string content))
+    (t content)))
+
+(defun decode-severity (sev-str)
+  (cond
+    ((equal sev-str "info") :info)
+    ((equal sev-str "warning") :warning)
+    ((equal sev-str "error") :error)
+    (t :unknown)))
+
+(defmacro with-http-request ((method url
+				     (&optional (text (gensym "TEXT"))
+						(status (gensym "STATUS"))
+						(headers (gensym "HEADERS")))
+				     &rest args)
+			     &body body)
+  (let ((portofino-messages (gensym "MESSAGES")))
+    `(multiple-value-bind (,text ,status ,headers)
+	 (drakma:http-request ,url :method ,method ,@args :connection-timeout *default-connection-timeout*)
+       (let ((,portofino-messages (drakma:header-value :x-portofino-message ,headers)))
+	 (when ,headers
+	   (let ((,portofino-messages (split-sequence #\, ,portofino-messages)))
+	     (dolist (msg ,portofino-messages)
+	       (let ((pos (position #\: msg)))
+		 (when pos
+		   (signal 'log-message-received
+			   :severity (decode-severity (subseq msg 0 pos))
+			   :message (string-trim " " (subseq msg (1+ pos)))))))))
+	 (if (and (>= ,status 200) (< ,status 300))
+	     (progn ,@body)
+	     (cond
+	       ((= ,status 401) (error 'authentication-required :url url))
+	       ((= ,status 403) (error 'not-authorized :url url))
+	       ((= ,status 404) (error 'not-found :url url))
+	       (t (error "Request failed: ~S, ~A ~A, message: ~S" ,status ,method ,url (maybe-decode ,text)))))))))
 
 (defun login (username password &key (url *default-portofino-url*))
   (unless (and username password)
@@ -83,6 +110,10 @@
 (define-condition authentication-required (http-error) ())
 (define-condition not-authorized (http-error) ())
 (define-condition not-found (http-error) ())
+
+(define-condition log-message-received (condition)
+  ((severity :initarg :severity :reader log-message-severity)
+   (message :initarg :message :reader log-message)))
 
 (defun authorization-header (token)
   `("Authorization" . ,(format nil "Bearer ~A" token)))
@@ -111,21 +142,52 @@
     (with-http-request (:post url () :additional-headers (list (authorization-header token)))
       t)))
 
+(defun db-descriptor (name driver url username password dialect jndi-resource)
+  (cl-json:encode-json-to-string
+   (remove-if #'null (list
+		      (cons 'database-name name)
+		      (cons 'driver driver)
+		      (cons 'url url)
+		      (cons 'username username)
+		      (cons 'password password)
+		      (cons 'hibernate-dialect dialect)
+		      (cons 'jndi-resource jndi-resource))
+	      :key #'cdr)))
+
 (defun create-database (name &key
 			       (url *default-portofino-url*) token
-			       driver database-url username password dialect jndi-resource)
+			       driver jdbc-url username password dialect jndi-resource
+			       schemas)
+  (unless (and (or jdbc-url jndi-resource) (or (null jdbc-url) (null jndi-resource)))
+    (error "Exactly one of jdbc-url and jndi-resource is required"))
   (let ((url (resource-url url "portofino-upstairs/database/connections")))
     (with-http-request (:post url ()
 			      :content-type "application/json"
-			      :content (cl-json:encode-json-to-string
-					(remove-if #'null (list
-							   (cons 'database-name name)
-							   (cons 'driver driver)
-							   (cons 'url database-url)
-							   (cons 'username username)
-							   (cons 'password password)
-							   (cons 'hibernate-dialect dialect)
-							   (cons 'jndi-resource jndi-resource))
-						   :key #'cdr))
+			      :content (db-descriptor name driver jdbc-url username password dialect jndi-resource)
+			      :additional-headers (list (authorization-header token)))
+      t)))
+
+(defun remove-database (name &key (url *default-portofino-url*) token)
+  (let ((url (resource-url url (format nil "portofino-upstairs/database/connections/~A" name))))
+    (with-http-request (:delete url () :additional-headers (list (authorization-header token)))
+      t)))
+
+(defun update-database (name &key
+			       (url *default-portofino-url*) token
+			       driver jdbc-url username password dialect jndi-resource
+			       schemas)
+  (if (and jdbc-url jndi-resource)
+    (error "Please provide either a jdbc-url or a jndi-resource, not both"))
+  (let ((url (resource-url url (format nil "portofino-upstairs/database/connections/~A" name))))
+    (with-http-request (:put url ()
+			     :content-type "application/json"
+			     :content (db-descriptor name driver jdbc-url username password dialect jndi-resource)
+			     :additional-headers (list (authorization-header token)))
+      t)))
+
+(defun add-database-schema (db-name schema-name schema-physical-name &key (url *default-portofino-url*) token)
+  (let ((url (resource-url url (format nil "portofino-upstairs/database/connections/~A/~A" db-name schema-name))))
+    (with-http-request (:post url ()
+			      :content schema-physical-name
 			      :additional-headers (list (authorization-header token)))
       t)))
