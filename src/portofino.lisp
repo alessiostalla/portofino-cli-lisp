@@ -53,9 +53,10 @@
   `(multiple-value-bind (,text ,status)
 	(drakma:http-request ,url :method ,method ,@args :connection-timeout *default-connection-timeout*)
       (if (and (>= ,status 200) (< ,status 300))
-	  ,@body
+	  (progn ,@body)
 	  (cond
 	    ((= ,status 401) (error 'authentication-required :url url))
+	    ((= ,status 403) (error 'not-authorized :url url))
 	    ((= ,status 404) (error 'not-found :url url))
 	    (t (error "Request failed: ~S, status: ~S, URL: ~A" ,text ,status ,url))))))
 
@@ -76,10 +77,11 @@
   (merge-pathnames (make-pathname :name (car (last path)))
 		   (apply #'resolve-directory base (butlast path))))
 
-(define-condition http-error (serious-condition)
+(define-condition http-error (error)
   ((url :initarg :url :reader http-error-url)))
 
 (define-condition authentication-required (http-error) ())
+(define-condition not-authorized (http-error) ())
 (define-condition not-found (http-error) ())
 
 (defun authorization-header (token)

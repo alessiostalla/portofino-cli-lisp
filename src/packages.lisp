@@ -8,7 +8,7 @@
    #:delete-action
    #:http-error-url
    #:*latest-portofino-version* #:login
-   #:not-found
+   #:not-authorized #:not-found
    #:resolve-file #:resolve-directory #:synchronize-database))
 
 (defpackage :portofino-cli

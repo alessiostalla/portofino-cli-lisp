@@ -7,20 +7,26 @@
 		     (let ((*read-eval* nil)) (read in))))))
      ,@body))
 
-(defmethod error-info ((c error))
+(defmethod error-info ((c serious-condition))
   (values (format nil "Generic error: ~A" c) 1))
 
 (defmethod error-info ((c USOCKET:CONNECTION-REFUSED-ERROR))
   (values "Could not connect to the Portofino application." 2))
 
 (defmethod error-info ((error not-found))
-  (values (format nil "Not found: ~A~%" (http-error-url error)) 3))
+  (values (format nil "Not found: ~A" (http-error-url error)) 3))
+
+(defmethod error-info ((error authentication-required))
+  (values (format nil "Authentication failed. Please retry with the correct user credentials." (http-error-url error)) 4))
+
+(defmethod error-info ((error not-authorized))
+  (values (format nil "The user is not authorized to access ~A." (http-error-url error)) 5))
 
 (defun main ()
   (let ((cli (portofino/command)))
     (handler-case
 	(clingon:run cli)
-      (error (e)
+      (serious-condition (e)
 	(multiple-value-bind (message code) (error-info e)
 	  (format *error-output* "~A~%" message)
 	  (clingon:exit code))))))
@@ -160,7 +166,8 @@
 			     (remove-if (lambda (x)
 					  (or (eq (car x) :token) (eq (car x) url)))
 					conf)))
-	       :stream out)))))
+	       :stream out)
+	token))))
 
 (defun logout/command ()
   (clingon:make-command :name "logout" :description "Log out of the application, i.e. delete the stored authentication token"
