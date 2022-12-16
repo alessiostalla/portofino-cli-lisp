@@ -10,7 +10,6 @@ In the future, we may also support automatically launching a Portofino server ag
 ## Usage
 Invoking the cli without any arguments prints some help text that you can use to discover commands.
 ```
-$ ./portofino
 Usage: 
 
 NAME:
@@ -22,25 +21,24 @@ USAGE:
 OPTIONS:
       --help              display usage information and exit
       --version           display version and exit
-  -U, --url <VALUE>       URL of the Portofino application [default: http://localhost:8080/]
-                          [env: $PORTOFINO_URL]
+  -U, --url <VALUE>       URL of the Portofino application [env: $PORTOFINO_URL]
   -p, --password <VALUE>  password to log in
   -u, --username <VALUE>  username to log in
 
 COMMANDS:
   new     Create a new Portofino project
   action  Commands for working with resource-actions
+  db      Commands for working with databases
   login   Login to a running Portofino instance
   logout  Log out of the application, i.e. delete the stored authentication
           token
 
 AUTHORS:
-  Alessio Stalla <alessiostalla@gmail.com>
- ```
+Alessio Stalla <alessiostalla@gmail.com>
+```
  
 Similarly you can discover sub-commands by typing them:
 ```
-$ ./portofino action
 Usage: 
 
 NAME:
@@ -52,14 +50,15 @@ USAGE:
 OPTIONS:
       --help              display usage information and exit
       --version           display version and exit
-  -U, --url <VALUE>       URL of the Portofino application [default: http://localhost:8080/]
-                          [env: $PORTOFINO_URL]
+  -U, --url <VALUE>       URL of the Portofino application [env: $PORTOFINO_URL]
   -p, --password <VALUE>  password to log in
   -u, --username <VALUE>  username to log in
 
 COMMANDS:
   list-types  List resource-action types
- ```
+  create      Create a new resource-action
+  delete      Delete a resource-action
+```
 
 An interactive REPL is planned but not yet available.
 
