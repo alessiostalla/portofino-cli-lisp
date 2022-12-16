@@ -10,6 +10,7 @@ In the future, we may also support automatically launching a Portofino server ag
 ## Usage
 Invoking the cli without any arguments prints some help text that you can use to discover commands.
 ```
+$ ./portofino
 Usage: 
 
 NAME:
@@ -39,6 +40,7 @@ Alessio Stalla <alessiostalla@gmail.com>
  
 Similarly you can discover sub-commands by typing them:
 ```
+$ ./portofino action
 Usage: 
 
 NAME:
