@@ -19,6 +19,16 @@
 (defvar *default-connection-timeout* 10)
 (defvar *default-portofino-url* "http://localhost:8080")
 
+(defvar *portofino-version-6* (semver:read-version-from-string "6.0.0"))
+
+(defun archetype-name (kw version)
+  (let ((version (semver:read-version-from-string version)))
+    (cond
+      ((eq kw :service) "portofino-service-full-archetype")
+      ((eq kw :minimal) "portofino-service-minimal-archetype")
+      ((and (version< version *portofino-version-6*) (eq kw :webapp)) "portofino-war-archetype")
+      (t (error "Not a known application type: ~A" type)))))
+
 (defun check-maven-installation ()
   (uiop:run-program `(,*maven-command* "-version")))
 
@@ -27,11 +37,7 @@
   (uiop:run-program `(,*maven-command* "archetype:generate"
 				       "-DinteractiveMode=false"
 				       "-DarchetypeGroupId=com.manydesigns"
-				       ,(format nil "-DarchetypeArtifactId=~A"
-						(case type
-						  (:service "portofino-service-archetype")
-						  (:webapp  "portofino-war-archetype")
-						  (t (error "Not a known application type: ~A" type))))
+				       ,(format nil "-DarchetypeArtifactId=~A" (archetype-name type portofino-version))
 				       ,(format nil "-DarchetypeVersion=~A" portofino-version)
 				       ,(format nil "-DgroupId=~A" package)
 				       ,(format nil "-DartifactId=~A" name)
