@@ -81,7 +81,9 @@ Run the following command (using a Bash-compatible shell which should also be av
 ros run -- --eval "(progn (asdf:load-asd \"`pwd`/portofino-cli.asd\") (ql:quickload :portofino-cli/executable))"
 ```
 
-An executable file named "portofino" should be created. On Windows, you may rename it to "portofino.exe".
+An executable file named "portofino" should be created. On Windows, rename it to "portofino.exe".
+
+You may want to add the executable to your PATH environment variable so that you'll be able to use the command `portofino` in every directory. Otherwise, you'll have to specify the command's path each time, e.g., `/home/alessio/portofino`.
  
 ## License
  

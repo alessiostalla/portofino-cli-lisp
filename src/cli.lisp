@@ -109,7 +109,7 @@
   (list
    (clingon:make-option
     :string
-    :description "type of application: service or webapp"
+    :description "type of application: service, minimal, or (for Portofino < 6) webapp"
     :long-name "type"
     :initial-value "service"
     :key :project-type)
