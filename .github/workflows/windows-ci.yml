@@ -6,7 +6,7 @@ on:
 jobs:
   build-executable:
     name: Build executale
-    runs-on: windows-latest
+    runs-on: windows-2019
 
     steps:
       - uses: actions/checkout@v3
@@ -29,5 +29,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: portofino-windows
+          name: portofino-cli-windows
           path: portofino.exe
