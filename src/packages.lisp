@@ -2,7 +2,7 @@
   (:use :cl :split-sequence)
   (:export
    #:action-types #:add-database-schema #:authentication-required
-   #:create-action #:create-application #:create-database
+   #:copy-or-move-action #:create-action #:create-application #:create-database
    #:*default-connection-timeout*
    #:*default-portofino-url*
    #:delete-action

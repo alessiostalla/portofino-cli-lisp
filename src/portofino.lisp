@@ -143,6 +143,16 @@
     (with-http-request (:delete url () :additional-headers (list (authorization-header token)))
       t)))
 
+(defun copy-or-move-action (from to &key (url *default-portofino-url*) token (copy t))
+  (let ((url (resource-url url (format nil "portofino-upstairs/actions/~A" to))))
+    (with-http-request (:post url (text)
+			      :content-type (if copy
+						"application/vnd.com.manydesigns.portofino.action-copy"
+						"application/vnd.com.manydesigns.portofino.action-move")
+			      :content from
+			      :additional-headers (list (authorization-header token)))
+      text)))
+
 (defun synchronize-database (name &key (url *default-portofino-url*) token)
   (let ((url (resource-url url (format nil "portofino-upstairs/database/connections/~A/:synchronize" name))))
     (with-http-request (:post url () :additional-headers (list (authorization-header token)))

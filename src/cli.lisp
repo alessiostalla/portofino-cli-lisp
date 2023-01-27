@@ -70,6 +70,7 @@
     :short-name #\U
     :long-name "url"
     :env-vars '("PORTOFINO_URL")
+    :initial-value *default-portofino-url*
     :key :url)
    (clingon:make-option
     :string
@@ -197,7 +198,9 @@
 			:sub-commands (list
 				       (list-action-types/command)
 				       (create-action/command)
-				       (delete-action/command))))
+				       (delete-action/command)
+				       (copy-action/command)
+				       (move-action/command))))
 
 (defun ensure-login-token (username password &key (url *default-portofino-url*) force-login)
   (let* ((file (resolve-file (user-homedir-pathname) ".portofino-cli"))
@@ -264,6 +267,32 @@
   (let ((action-path (or (car args) (error "Usage: action delete <options> <path>"))))
     (with-safe-http-request (token url username password)
       (portofino:delete-action action-path :url url :token token))))
+
+(defun copy-action/command ()
+  (clingon:make-command :name "copy" :description "Copy a resource-action"
+			:handler #'copy-action/handler
+			:options (portofino/options)))
+
+(defhandler copy-action/handler (username password url &rest from-to)
+  "copy a resource-action"
+  (when (< (length from-to) 2)
+    (error "Source and target path are required"))
+  (destructuring-bind (from to) from-to
+    (with-safe-http-request (token url username password)
+      (portofino:copy-or-move-action from to :url url :token token :copy t))))
+
+(defun move-action/command ()
+  (clingon:make-command :name "move" :description "Move a resource-action"
+			:handler #'move-action/handler
+			:options (portofino/options)))
+
+(defhandler move-action/handler (username password url &rest from-to)
+  "Move a resource-action"
+  (when (< (length from-to) 2)
+    (error "Source and target path are required"))
+  (destructuring-bind (from to) from-to
+    (with-safe-http-request (token url username password)
+      (portofino:copy-or-move-action from to :url url :token token :copy nil))))
 
 (defun db/command ()
   (clingon:make-command :name "db" :description "Commands for working with databases"
