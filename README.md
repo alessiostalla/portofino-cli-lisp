@@ -68,6 +68,8 @@ An interactive REPL is planned but not yet available.
 
 We don't provide (yet) binary packages, though I'm working on it. So, you'll have to build portofino-cli yourself. Please follow the build instructions.
 
+__Note__ on Windows, you must have LibSSL 1.x installed. If the binary fails with an error loading libssl DLLs, please install OpenSSL __version 1.1.1__ from https://slproweb.com/products/Win32OpenSSL.html __(version 3.x won't fix the issue).__
+
 ## Building
 
 First, clone this repo if you haven't done already:
