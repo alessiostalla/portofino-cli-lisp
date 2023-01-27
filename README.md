@@ -1,5 +1,5 @@
 # portofino-cli
-Command-line utilities for ManyDesigns Portofino.
+Command-line utilities for [ManyDesigns Portofino](https://github.com/ManyDesigns/Portofino).
 
 This is a work in progress. Only few commands are supported at the moment and error handling is not very user-friendly (but it's improving).
 
