@@ -12,11 +12,14 @@
 
 #+sbcl
 (defsystem "portofino-cli/executable"
-  :version "0.2.0"
+  :version "1.0.0"
   :author "Alessio Stalla"
   :license "AGPL"
   :depends-on ("portofino-cli")
   :components ((:module "src" :components ((:file "binary-sbcl"))))
+  :build-operation "program-op"
+  :build-pathname #-win32 "portofino" #+win32 "portofino.exe"
+  :entry-point "portofino-cli:main"
   :description "Command-line interface to a Portofino application")
 
 #-sbcl

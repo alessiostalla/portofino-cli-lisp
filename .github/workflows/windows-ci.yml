@@ -22,10 +22,7 @@ jobs:
         shell: bash
         run: |
           PATH="~/.roswell/bin:/c/roswell/bin:$PATH"
-          ros run -- --eval "(progn (asdf:load-asd \"`pwd`/portofino-cli.asd\") (ql:quickload :portofino-cli/executable))"
-      - name: Rename executable
-        shell: bash
-        run: mv portofino portofino.exe
+          ros run -- --eval "(progn (asdf:load-asd \"`pwd`/portofino-cli.asd\") (ql:quickload :portofino-cli/executable) (quit))"
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:

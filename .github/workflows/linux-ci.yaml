@@ -56,7 +56,7 @@ jobs:
         run: |
           ros use sbcl/system;
           PATH=~/.roswell/bin:$PATH
-          ros run -- --eval "(progn (asdf:load-asd \"`pwd`/portofino-cli.asd\") (ql:quickload :portofino-cli/executable))"
+          ros run -- --eval "(progn (asdf:load-asd \"`pwd`/portofino-cli.asd\") (ql:quickload :portofino-cli/executable) (quit))"
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:

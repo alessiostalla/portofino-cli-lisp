@@ -94,9 +94,12 @@
   (format t "Usage: ~%~%")
   (clingon:print-usage command t))
 
+(defvar +version+ "1.0.0")
+
 (defun portofino/command ()
   (clingon:make-command :name "portofino" :description "The Portofino CLI"
 			:authors '("Alessio Stalla <alessiostalla@gmail.com>")
+			:version +version+
 			:options (portofino/options)
 			:pre-hook #'portofino/pre-hook
 			:handler #'directory-command/handler
