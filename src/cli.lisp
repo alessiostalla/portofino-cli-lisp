@@ -94,7 +94,7 @@
   (format t "Usage: ~%~%")
   (clingon:print-usage command t))
 
-(defvar +version+ "1.0.0")
+(defvar +version+ (or (ignore-errors (asdf:component-version (asdf:find-system :portofino-cli))) "<unknown>"))
 
 (defun portofino/command ()
   (clingon:make-command :name "portofino" :description "The Portofino CLI"

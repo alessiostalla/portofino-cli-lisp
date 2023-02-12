@@ -80,7 +80,7 @@ Make sure you have Roswell installed by following [its installation guide](https
 
 Run the following command (using a Bash-compatible shell which should also be available in recent versions of Windows with WSL):
 ```
-ros run -- --eval "(progn (asdf:load-asd \"`pwd`/portofino-cli.asd\") (ql:quickload :portofino-cli/executable) (quit))"
+ros run -- --eval "(progn (asdf:load-asd \"`pwd`/portofino-cli.asd\") (ql:quickload :portofino-cli) (asdf:make :portofino-cli/executable) (quit))"
 ```
 
 An executable file named "portofino" should be created. On Windows, rename it to "portofino.exe".

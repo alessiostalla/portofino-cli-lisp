@@ -12,7 +12,7 @@
 
 #+sbcl
 (defsystem "portofino-cli/executable"
-  :version "1.0.0"
+  :version (asdf:component-version (asdf:find-system :portofino-cli))
   :author "Alessio Stalla"
   :license "AGPL"
   :depends-on ("portofino-cli")
