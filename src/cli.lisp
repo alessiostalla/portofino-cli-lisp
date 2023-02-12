@@ -139,6 +139,8 @@
 
 (defun new-project/command ()
   (clingon:make-command :name "new" :description "Create a new Portofino project"
+			:authors '("Alessio Stalla <alessiostalla@gmail.com>")
+			:version +version+
 			:options (new-project/options)
 			:handler #'new-project/handler))
 
@@ -159,6 +161,8 @@
 
 (defun login/command ()
   (clingon:make-command :name "login" :description "Login to a running Portofino instance"
+			:authors '("Alessio Stalla <alessiostalla@gmail.com>")
+			:version +version+
 			:handler #'login/handler
 			:options (portofino/options)))
 
@@ -182,6 +186,8 @@
 
 (defun logout/command ()
   (clingon:make-command :name "logout" :description "Log out of the application, i.e. delete the stored authentication token"
+			:authors '("Alessio Stalla <alessiostalla@gmail.com>")
+			:version +version+
 			:handler #'logout/handler))
 
 (defhandler logout/handler ()
@@ -196,6 +202,8 @@
 
 (defun action/command ()
   (clingon:make-command :name "action" :description "Commands for working with resource-actions"
+			:authors '("Alessio Stalla <alessiostalla@gmail.com>")
+			:version +version+
 			:handler #'directory-command/handler
 			:options (portofino/options)
 			:sub-commands (list
@@ -227,6 +235,8 @@
 
 (defun list-action-types/command ()
   (clingon:make-command :name "list-types" :description "List resource-action types"
+			:authors '("Alessio Stalla <alessiostalla@gmail.com>")
+			:version +version+
 			:handler #'list-action-types/handler
 			:options (portofino/options)))
 
@@ -239,6 +249,8 @@
 
 (defun create-action/command ()
   (clingon:make-command :name "create" :description "Create a new resource-action"
+			:authors '("Alessio Stalla <alessiostalla@gmail.com>")
+			:version +version+
 			:handler #'create-action/handler
 			:options (portofino/options)))
 
@@ -262,6 +274,8 @@
 
 (defun delete-action/command ()
   (clingon:make-command :name "delete" :description "Delete a resource-action"
+			:authors '("Alessio Stalla <alessiostalla@gmail.com>")
+			:version +version+
 			:handler #'delete-action/handler
 			:options (portofino/options)))
 
@@ -273,6 +287,8 @@
 
 (defun copy-action/command ()
   (clingon:make-command :name "copy" :description "Copy a resource-action"
+			:authors '("Alessio Stalla <alessiostalla@gmail.com>")
+			:version +version+
 			:handler #'copy-action/handler
 			:options (portofino/options)))
 
@@ -286,6 +302,8 @@
 
 (defun move-action/command ()
   (clingon:make-command :name "move" :description "Move a resource-action"
+			:authors '("Alessio Stalla <alessiostalla@gmail.com>")
+			:version +version+
 			:handler #'move-action/handler
 			:options (portofino/options)))
 
@@ -299,6 +317,8 @@
 
 (defun db/command ()
   (clingon:make-command :name "db" :description "Commands for working with databases"
+			:authors '("Alessio Stalla <alessiostalla@gmail.com>")
+			:version +version+
 			:handler #'directory-command/handler
 			:options (portofino/options)
 			:sub-commands (list
@@ -310,6 +330,8 @@
 
 (defun db-sync/command ()
   (clingon:make-command :name "sync" :description "Synchronize a database connection"
+			:authors '("Alessio Stalla <alessiostalla@gmail.com>")
+			:version +version+
 			:handler #'db-sync/handler
 			:options (portofino/options)))
 
@@ -355,6 +377,8 @@
 
 (defun db-add/command ()
   (clingon:make-command :name "add" :description "Configure a new database connection"
+			:authors '("Alessio Stalla <alessiostalla@gmail.com>")
+			:version +version+
 			:handler #'db-add/handler
 			:options (db-conf/options)))
 
@@ -369,6 +393,8 @@
 
 (defun db-remove/command ()
   (clingon:make-command :name "remove" :description "Remove a database connection"
+			:authors '("Alessio Stalla <alessiostalla@gmail.com>")
+			:version +version+
 			:handler #'db-remove/handler
 			:options (portofino/options)))
 
@@ -380,6 +406,8 @@
 
 (defun db-update/command ()
   (clingon:make-command :name "update" :description "Configure an existing database connection"
+			:authors '("Alessio Stalla <alessiostalla@gmail.com>")
+			:version +version+
 			:handler #'db-update/handler
 			:options (db-conf/options)))
 
@@ -394,6 +422,8 @@
 
 (defun db-schema/command ()
   (clingon:make-command :name "schema" :description "Commands for working with schemas"
+			:authors '("Alessio Stalla <alessiostalla@gmail.com>")
+			:version +version+
 			:handler #'directory-command/handler
 			:options (portofino/options)
 			:sub-commands (list
@@ -401,6 +431,8 @@
 
 (defun db-schema-add/command ()
   (clingon:make-command :name "add" :description "Map a new database schema"
+			:authors '("Alessio Stalla <alessiostalla@gmail.com>")
+			:version +version+
 			:handler #'db-schema-add/handler
 			:options (portofino/options)))
 
