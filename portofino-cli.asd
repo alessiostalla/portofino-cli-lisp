@@ -6,7 +6,7 @@
   :license "AGPL"
   :depends-on ("cl-json" "cl-semver" "clingon" "drakma" "split-sequence")
   :components ((:module "src"
-                :components ((:file "packages") (:file "portofino") (:file "cli"))))
+                :components ((:file "packages") (:file "portofino") (:file "password-prompt") (:file "cli"))))
   :description "Command-line interface to a Portofino application"
   :in-order-to ((test-op (test-op "portofino-cli/tests"))))
 

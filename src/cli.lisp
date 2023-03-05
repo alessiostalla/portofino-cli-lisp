@@ -171,8 +171,10 @@
   (login-and-store-token username password url))
 
 (defun login-and-store-token (username password url)
-  (unless (and username password (> (length username) 0) (> (length password) 0))
-    (error "Username and password are required."))
+  (unless (and username (> (length username) 0))
+    (setf username (prompt-for-value "Username:")))
+  (unless (and password (> (length password) 0))
+    (setf password (prompt-for-passphrase "Password:")))
   (let ((token (cdr (assoc :jwt (portofino:login username password :url url)))))
     (with-conf (conf file)
       (with-open-file (out file :direction :output :if-exists :supersede :if-does-not-exist :create)
