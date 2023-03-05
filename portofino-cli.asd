@@ -1,7 +1,7 @@
 (in-package :asdf)
 
 (defsystem "portofino-cli"
-  :version "1.0.0"
+  :version "1.0.0-alpha-1"
   :author "Alessio Stalla"
   :license "AGPL"
   :depends-on ("cl-json" "cl-semver" "clingon" "drakma" "split-sequence")
