@@ -5,7 +5,7 @@ on:
 
 jobs:
   build-executable:
-    name: Build executale
+    name: Build Linux executable
     runs-on: ubuntu-latest
     env:
       LISP: sbcl
@@ -61,5 +61,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: portofino-linux
+          name: portofino-cli-linux
           path: portofino

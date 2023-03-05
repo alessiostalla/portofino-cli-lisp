@@ -5,7 +5,7 @@ on:
 
 jobs:
   build-executable:
-    name: Build executale
+    name: Build Windows executable
     runs-on: windows-2019
 
     steps:
