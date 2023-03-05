@@ -66,9 +66,14 @@ An interactive REPL is planned but not yet available.
 
 ## Installation
 
-We don't provide (yet) binary packages, though I'm working on it. So, you'll have to build portofino-cli yourself. Please follow the build instructions.
+We release [binary packages for Windows, Linux and OS X](https://github.com/alessiostalla/portofino-cli/releases). They don't require any installation (but see below for notes). You can just unpack them and add them to your PATH environment variable. 
 
-__Note__ on Windows, you must have LibSSL 1.x installed. If the binary fails with an error loading libssl DLLs, please install OpenSSL __version 1.1.1__ from https://slproweb.com/products/Win32OpenSSL.html __(version 3.x won't fix the issue).__
+If the pre-built binaries don't work for you, you can build portofino-cli from source on your machine, see [the next section](#building).
+
+### Notes
+__On Windows, you must have LibSSL 1.x installed.__ If the binary fails with an error loading libssl DLLs, please install OpenSSL __version 1.1.1__ from https://slproweb.com/products/Win32OpenSSL.html __(version 3.x won't fix the issue).__
+
+__We don't sign (yet) the OSX binaries.__ Your OS will likely refuse to execute them. You may have to right-click on the "portofino" command-line executable and explicitly ask to Open it. OSX will ask for confirmation and only after you've given your consent it will allow you to run the executable from the command line.
 
 ## Building
 
