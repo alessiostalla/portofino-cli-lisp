@@ -22,3 +22,4 @@ jobs:
         with:
           name: portofino-cli-osx
           path: portofino
+          if-no-files-found: error

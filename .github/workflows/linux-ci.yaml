@@ -63,3 +63,4 @@ jobs:
         with:
           name: portofino-cli-linux
           path: portofino
+          if-no-files-found: error

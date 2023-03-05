@@ -1,7 +1,7 @@
 (in-package :asdf)
 
 (defsystem "portofino-cli"
-  :version "1.0.0-alpha-1"
+  :version "0.1.0"
   :author "Alessio Stalla"
   :license "AGPL"
   :depends-on ("cl-json" "cl-semver" "clingon" "drakma" "split-sequence")
@@ -12,13 +12,13 @@
 
 #+sbcl
 (defsystem "portofino-cli/executable"
-  :version (asdf:component-version (asdf:find-system :portofino-cli))
+  :version "0.1.0"
   :author "Alessio Stalla"
   :license "AGPL"
   :depends-on ("portofino-cli")
   :components ((:module "src" :components ((:file "binary-sbcl"))))
   :build-operation "program-op"
-  :build-pathname #-win32 "portofino" #+win32 "portofino.exe"
+  :build-pathname "portofino"
   :entry-point "portofino-cli:main"
   :description "Command-line interface to a Portofino application")
 

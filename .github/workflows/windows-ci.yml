@@ -28,3 +28,4 @@ jobs:
         with:
           name: portofino-cli-windows
           path: portofino.exe
+          if-no-files-found: error
