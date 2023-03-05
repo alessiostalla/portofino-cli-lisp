@@ -21,7 +21,7 @@ jobs:
       - name: Get Current Month
         id: current-month
         run: |
-          echo "::set-output name=value::$(date -u "+%Y-%m")"
+          echo "value=$(date -u "+%Y-%m")" >> $GITHUB_OUTPUT
       - name: Cache Roswell Setup
         id: cache
         uses: actions/cache@v3
