@@ -88,9 +88,29 @@
 (defun portofino/pre-hook (cmd)
   (cl+ssl:reload))
 
+(defun print-banner (&optional (stream t))
+  (princ " ,ggggggggggg,                                                                           
+dP\"\"\"88\"\"\"\"\"\"Y8,                 I8               ,dPYb,                                 
+Yb,  88      `8b                 I8               IP'`Yb                                 
+ `\"  88      ,8P              88888888            I8  8I  gg                             
+     88aaaad8P\"                  I8               I8  8'  \"\"                             
+     88\"\"\"\"\",ggggg,   ,gggggg,   I8     ,ggggg,   I8 dP   gg    ,ggg,,ggg,     ,ggggg,   
+     88    dP\"  \"Y8gggdP\"\"\"\"8I   I8    dP\"  \"Y8gggI8dP    88   ,8\" \"8P\" \"8,   dP\"  \"Y8ggg
+     88   i8'    ,8I ,8'    8I  ,I8,  i8'    ,8I  I8P     88   I8   8I   8I  i8'    ,8I  
+     88  ,d8,   ,d8',dP     Y8,,d88b,,d8,   ,d8' ,d8b,_ _,88,_,dP   8I   Yb,,d8,   ,d8'  
+     88  P\"Y8888P\"  8P      `Y88P\"\"Y8P\"Y8888P\"   PI8\"8888P\"\"Y88P'   8I   `Y8P\"Y8888P\"    
+                                                  I8 `8,                                 
+                                                  I8  `8,                                
+                                                  I8   8I                                
+                                                  I8   8I                                
+                                                  I8, ,8'                                
+                                                   \"Y8P'                                 
+" stream))
+
 (defun directory-command/handler (command)
   (when (clingon:command-arguments command)
     (format *error-output* "Invalid arguments ~A~%~%" (clingon:command-arguments command)))
+  (print-banner)
   (format t "Usage: ~%~%")
   (clingon:print-usage command t))
 
