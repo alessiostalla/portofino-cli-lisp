@@ -1,4 +1,13 @@
-# portofino-cli
+# portofino-cli-lisp
+
+**Note this is no longer maintained and it's replaced by https://github.com/alessiostalla/portofino-cli**. This was an older implementation in Common Lisp before I developed portofino-client in TypeScript. Since development resources are limited, I decided to rewrite the CLI in TypeScript to leverage and test the TS client. However, I'm keeping this one around for:
+
+1. History.
+2. Hopefully serving as a nice starting example of how to design, build and distribute command-line Lisp applications, as it wasn't an easy road for me when I started.
+3. Maybe one day when I have more time/money I'll resume work on this to have an alternative that doesn't require a Node installation, may support an interactive mode more easily, and contribute a tiny bit to the diffusion of Lisp.
+
+------
+
 Command-line utilities for [ManyDesigns Portofino](https://github.com/ManyDesigns/Portofino).
 
 This is a work in progress. Only few commands are supported at the moment and error handling is not very user-friendly (but it's improving).
